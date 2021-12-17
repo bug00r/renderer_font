@@ -66,7 +66,7 @@ LIBSRC=$(patsubst %,src/%,$(patsubst %,%.c,$(_LIB_SRC_FILES)))
 LIBHEADER=$(patsubst %,src/%,$(patsubst %,%.h,$(_LIB_SRC_FILES)))
 OBJS=r_font.o
 LIB_NAME=r_font
-LIBS= $(LIB_NAME) freetype dl_list
+LIBS= $(LIB_NAME) freetype utils_math dl_list vec
 
 TESTLIB=$(patsubst %,-l%,$(LIBS))
 _TEST_SRC_FILES=test_r_font
