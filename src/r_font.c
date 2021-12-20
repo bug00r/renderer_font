@@ -24,15 +24,15 @@ void rfont_cleanup(rf_ctx_t *ctx)
 
 static bool __r_font_vec2_inside_bbox(vec2_t *vec, rf_bbox_t *bbox)
 { 
-    return (vec->x >= bbox->xMin) &&
-           (vec->x <= bbox->xMax) &&
-           (vec->y >= bbox->yMin) &&
+    return (vec->x >= bbox->xMin) ||
+           (vec->x <= bbox->xMax) ||
+           (vec->y >= bbox->yMin) ||
            (vec->y <= bbox->yMax);
 }
 
 static bool __r_font_must_check_for_intersection(vec2_t *p1, vec2_t *p2, rf_bbox_t* bbox)
 {   
-    return __r_font_vec2_inside_bbox(p1, bbox) && __r_font_vec2_inside_bbox(p2, bbox);
+    return __r_font_vec2_inside_bbox(p1, bbox) || __r_font_vec2_inside_bbox(p2, bbox);
 }
 
 /*_color = (unsigned char)interpolate_lin(_color, renderer->max_z, 0.f, renderer->min_z, 255.f);*/
@@ -168,6 +168,7 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
                         //intersects?
                         if ( __r_font_must_check_for_intersection(start, end, &toCheckArea) )
                         {
+                            
                             if ( line_intersect_denominator(&curPoint, &rasterRef, start, end) != 0.f)
                             {
 
