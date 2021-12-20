@@ -32,7 +32,7 @@ typedef struct {
     rf_provider_t *provider;
 } rf_ctx_t;
 
-typedef void (*RASTER_FONT_FUNC)(int32_t const * const x, int32_t const * const y, void *data);
+typedef void (*RASTER_FONT_FUNC)(long const * const x, long const * const y, void *data);
 
 
 void rfont_init(rf_ctx_t *ctx, rf_provider_t *provider);

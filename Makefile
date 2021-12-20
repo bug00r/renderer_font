@@ -66,7 +66,7 @@ LIBSRC=$(patsubst %,src/%,$(patsubst %,%.c,$(_LIB_SRC_FILES)))
 LIBHEADER=$(patsubst %,src/%,$(patsubst %,%.h,$(_LIB_SRC_FILES)))
 OBJS=r_font.o
 LIB_NAME=r_font
-LIBS= $(LIB_NAME) freetype utils_math dl_list vec
+LIBS= $(LIB_NAME) freetype dl_list utilsmath vec mat
 
 TESTLIB=$(patsubst %,-l%,$(LIBS))
 _TEST_SRC_FILES=test_r_font
@@ -105,4 +105,4 @@ clean:
 	-rm -dr $(BUILDROOT)
 
 $(BUILDPATH)$(TESTBIN): $(TESTSRC) $(LIBSRC) $(LIBHEADER)
-	$(CC) $(CFLAGS) $(TESTSRC) $(LIBSDIR) -lfreetype $(INCLUDE) $(debug) -o $(BUILDPATH)$(TESTBIN)
+	$(CC) $(CFLAGS) $(TESTSRC) $(LIBSDIR) $(TESTLIB) $(INCLUDE) $(debug) -o $(BUILDPATH)$(TESTBIN)
