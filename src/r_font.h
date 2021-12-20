@@ -1,6 +1,8 @@
 #ifndef R_FONT_H
 #define R_FONT_H
 
+#include <stdbool.h>
+
 #include "dl_list.h"
 #include "utils_math.h"
 
@@ -12,8 +14,13 @@ typedef struct {
 } rf_bbox_t;
 
 typedef struct {
+    vec2_t *points;
+    size_t cntPoints;
+} rf_outlines_t;
+
+typedef struct {
     rf_bbox_t bbox;
-    vec2_t *outlines;
+    rf_outlines_t *outlines;
     size_t cntOutlines;
 } rf_glyph_t;
 

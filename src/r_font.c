@@ -22,6 +22,19 @@ void rfont_cleanup(rf_ctx_t *ctx)
     ctx->provider = NULL;
 }
 
+static bool __r_font_vec2_inside_bbox(vec2_t *vec, rf_bbox_t *bbox)
+{ 
+    return (vec->x >= bbox->xMin) &&
+           (vec->x <= bbox->xMax) &&
+           (vec->y >= bbox->yMin) &&
+           (vec->y <= bbox->yMax);
+}
+
+static bool __r_font_must_check_for_intersection(vec2_t *p1, vec2_t *p2, rf_bbox_t* bbox)
+{   
+    return __r_font_vec2_inside_bbox(p1, bbox) && __r_font_vec2_inside_bbox(p2, bbox);
+}
+
 /*_color = (unsigned char)interpolate_lin(_color, renderer->max_z, 0.f, renderer->min_z, 255.f);*/
 void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode, rf_bbox_t* _charBbox, RASTER_FONT_FUNC rFunc, void *data)
 {
@@ -29,8 +42,16 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
 
     rf_glyph_container_t *glyphs = ctx->glyps;
     rf_glyph_t *glyph = glyphs->get(charcode);
+    
+    if ( glyph->cntOutlines < 2 ) {
+        #ifdef debug
+            printf("not enough outlines available.");
+        #endif
+        return;
+    }
+    
     rf_bbox_t* glyphBbox = &glyph->bbox;
-
+ 
     vec2_t* charPos = _charPos;
     rf_bbox_t* charBbox = _charBbox;
 
@@ -112,8 +133,6 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
             vec2_t curPoint;
             curPoint.y = (float)curGlyphY;
 
-            long renderY = charPos->y + deltaScrY;
-
             for (long deltaScrX = alignedCharBox.xMin; deltaScrX < alignedCharBox.xMax; ++deltaScrX )
             {
                 long curGlyphX = interpolate_lin(deltaScrX, alignedCharBox.xMin, glyphBbox->xMin, alignedCharBox.xMax, glyphBbox->xMax);
@@ -124,20 +143,56 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
 
                 /* Here we add intersection logic */
                 curPoint.x = (float)curGlyphX;
-                vec2_t checkRef;
-                vec2_sub_dest(&checkRef, &rasterRef, &curPoint);
+                //vec2_t checkRef;
+                //vec2_sub_dest(&checkRef, &rasterRef, &curPoint);
 
                 toCheckArea.xMin = curGlyphX;
                 
+                int intersectionSum = 0;
 
+                for ( size_t curOutline = 0; curOutline < glyph->cntOutlines; ++curOutline)
+                {
 
-                #ifdef debug
-                    __rfont_bbox_print("(INTERSEC) AREA", &toCheckArea);
-                #endif
+                    rf_outlines_t *outline = &glyph->outlines[curOutline];
+                    
+                    for ( size_t curOutlinePt = 1; curOutlinePt < outline->cntPoints; ++curOutlinePt)
+                    {
 
-                long renderX = charPos->x + deltaScrX;
-                //send to render function with offset to cur pos
-                rFunc((long const * const )&renderX, (long const * const )&renderY, data);
+                        vec2_t *start = &outline->points[curOutlinePt-1];
+                        vec2_t *end = &outline->points[curOutlinePt];
+                        
+                        #ifdef debug
+                            __rfont_bbox_print("(INTERSEC) AREA", &toCheckArea);
+                        #endif
+
+                        //intersects?
+                        if ( __r_font_must_check_for_intersection(start, end, &toCheckArea) )
+                        {
+                            if ( line_intersect_denominator(&curPoint, &rasterRef, start, end) != 0.f)
+                            {
+
+                                /* computing side */
+                                vec3_t first = { start->x, start->y, 0.f };
+                                vec3_t middle = { curPoint.x, curPoint.y, 0.f };
+                                vec3_t last = { end->x, end->y, 0.f };
+
+                                float place = place_of_vec3(&first, &last, &middle);
+
+                                intersectionSum += ( place <= 0.f ? -1 : 1 );
+                                
+                            }
+                        }
+                    }
+                }
+
+                if ( intersectionSum != 0 ) 
+                {
+                    long renderX = charPos->x + deltaScrX;
+                    long renderY = charPos->y + deltaScrY;
+                    //send to render function with offset to cur pos
+                    rFunc((long const * const )&renderX, (long const * const )&renderY, data);
+                }
+
             }
     }
 }
