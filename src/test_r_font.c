@@ -29,17 +29,38 @@ typedef struct {
     } rf_provider_t;
 
 */
+typedef struct {
+    long *buffer;
+    size_t width;
+    size_t height;
+} __rf_test_buffer_ctx_t;
 
-void __rf_test_render_func(long const * const x, long const * const y, void *data)
+static void __rf_test_render_func(long const * const x, long const * const y, void *data)
 {
-    printf("r:= x: %ld y: %ld\n", *x, *y);
+    //printf("r:= x: %ld y: %ld\n", *x, *y);
+    if ( !(*x > -1 && *y > -1) ) return;
+    __rf_test_buffer_ctx_t *ctx = data;
+    ctx->buffer[(*y * ctx->width) + *x] = 1L;
 }
 
 static const rf_bbox_t bbox_1 = {0l, 0l, 512l, 768l};
-static const rf_bbox_t bbox_2 = {-40l, -150l, 512l, 768l};
+static const rf_bbox_t bbox_2 = {0l, 0l, 512l, 768l};
 
-static rf_glyph_t __rf_test_glyph = { bbox_1, NULL};
-static rf_glyph_t __rf_test_glyph_neg = { bbox_2, NULL};
+static const size_t cntOutlines1 = 10;
+static vec2_t glyph1_outlines[10] = {
+    {0.f, 0.f}, {0.f, 100.f}, {100.f, 100.f}, {100.f, 0.f}, {0.f, 0.f},
+    {30.f, 30.f}, {70.f, 30.f}, {70.f, 70.f}, {30.f, 70.f}, {30.f, 30.f} 
+};
+
+static const size_t cntOutlines2 = 15;
+static vec2_t glyph2_outlines[15] = {
+    {0.f, 0.f}, {0.f, 100.f}, {100.f, 100.f}, {100.f, 0.f}, {0.f, 0.f},
+    {30.f, 30.f}, {70.f, 30.f}, {70.f, 45.f}, {30.f, 45.f}, {30.f, 30.f},
+    {30.f, 55.f}, {70.f, 55.f}, {70.f, 70.f}, {30.f, 70.f}, {30.f, 55.f}
+};
+
+static rf_glyph_t __rf_test_glyph = { bbox_1, &glyph1_outlines[0], cntOutlines1};
+static rf_glyph_t __rf_test_glyph_neg = { bbox_2, &glyph2_outlines[0], cntOutlines2};
 
 rf_glyph_t* __rf_test_glyph_get( unsigned long charcode ) 
 {
@@ -60,9 +81,29 @@ rf_glyph_container_t* __rf_test_glcon_get()
     return &__rf_test_glc;
 }
 
-void __rf_test_glcon_free(rf_glyph_container_t** container) 
+static void __rf_test_glcon_free(rf_glyph_container_t** container) 
 {
 
+}
+
+static void __rf_test_clearBuffer(__rf_test_buffer_ctx_t *_buffCtx)
+{
+    __rf_test_buffer_ctx_t * buffCtx = _buffCtx;
+    size_t max = buffCtx->width * buffCtx->height;
+    for ( size_t i = max-1; i--;  ) {
+        buffCtx->buffer[i] = 0L;
+    }
+}
+
+static void __rf_test_printBuffer(__rf_test_buffer_ctx_t *_buffCtx)
+{
+    __rf_test_buffer_ctx_t * buffCtx = _buffCtx;
+    size_t max = buffCtx->width * buffCtx->height;
+    for( size_t i = 0; i < max; ++i )
+    {
+        if ( (i > 0) && ((i % buffCtx->width) == 0) ) printf("\n");
+        printf("%ld ", buffCtx->buffer[i]);
+    }
 }
 
 static void test_r_font_raster_dummy() 
@@ -74,16 +115,33 @@ static void test_r_font_raster_dummy()
     rf_ctx_t rf_ctx;
     rfont_init(&rf_ctx, &provider);
 
-    vec2_t charPos = {30.f, 30.f};
-    rf_bbox_t charBbox = {0L,0L, 40L, 40L};
+    size_t width = 40;
+    size_t height = 40;
+    vec2_t charPos = {5.f, 5.f};
+    rf_bbox_t charBbox = {0, 0, 30, 30};
+    long buffer[1600];
+
+    __rf_test_buffer_ctx_t buffCtx = {buffer, width, height};   
 
     DEBUG_LOG("Test positive aligned glyph\n");
 
-    rfont_raster(&rf_ctx, &charPos, 0L, &charBbox, __rf_test_render_func, NULL);
-
+    __rf_test_clearBuffer(&buffCtx);
+    rfont_raster(&rf_ctx, &charPos, 0L, &charBbox, __rf_test_render_func, &buffCtx);
+    
+    printf("\n------------\n");
+    __rf_test_printBuffer(&buffCtx);
+    
     DEBUG_LOG("Test negative aligned glyph\n");
 
-    rfont_raster(&rf_ctx, &charPos, 1L, &charBbox, __rf_test_render_func, NULL);
+    __rf_test_clearBuffer(&buffCtx);
+
+    charPos     = (vec2_t){15.f, 5.f};
+    charBbox    = (rf_bbox_t){0, 0, 25, 25};
+
+    rfont_raster(&rf_ctx, &charPos, 1L, &charBbox, __rf_test_render_func, &buffCtx);
+   
+    printf("\n------------\n");   
+    __rf_test_printBuffer(&buffCtx);
 
     DEBUG_LOG("<<<\n");
 }

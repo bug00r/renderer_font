@@ -99,34 +99,43 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
     for (long deltaScrY = alignedCharBox.yMin; deltaScrY < alignedCharBox.yMax; ++deltaScrY )
     {
             /* screenresult y */
-            long curCharY = deltaScrY;
+            long curGlyphY = interpolate_lin(deltaScrY, alignedCharBox.yMin, glyphBbox->yMin, alignedCharBox.yMax, glyphBbox->yMax);
+
+            if ( curGlyphY < rasterRef.y ) {
+                toCheckArea.yMin = curGlyphY;
+                toCheckArea.yMax = rasterRef.y;
+            } else {
+                toCheckArea.yMin = rasterRef.y;
+                toCheckArea.yMax = curGlyphY;
+            }
+
+            vec2_t curPoint;
+            curPoint.y = (float)curGlyphY;
+
+            long renderY = charPos->y + deltaScrY;
+
             for (long deltaScrX = alignedCharBox.xMin; deltaScrX < alignedCharBox.xMax; ++deltaScrX )
             {
-                /* screenresult x */
-                long curCharX = deltaScrX;
-
-                long curGlyphX = interpolate_lin(curCharX, alignedCharBox.xMin, glyphBbox->xMin, alignedCharBox.xMax, glyphBbox->xMax);
-                long curGlyphY = interpolate_lin(curCharY, alignedCharBox.yMin, glyphBbox->yMin, alignedCharBox.yMax, glyphBbox->yMax);
-            
+                long curGlyphX = interpolate_lin(deltaScrX, alignedCharBox.xMin, glyphBbox->xMin, alignedCharBox.xMax, glyphBbox->xMax);
+                
                 #ifdef debug
-                    printf("x/y conv:= char: %ld / %ld glyph: %ld / %ld \n", curCharX, curCharY, curGlyphX, curGlyphY);
+                    printf("x/y conv:= char: %ld / %ld glyph: %ld / %ld \n", deltaScrX, deltaScrY, curGlyphX, curGlyphY);
                 #endif
 
                 /* Here we add intersection logic */
+                curPoint.x = (float)curGlyphX;
                 vec2_t checkRef;
-                vec2_t curPoint = { (float)curGlyphX, (float)curGlyphY };
                 vec2_sub_dest(&checkRef, &rasterRef, &curPoint);
 
-                toCheckArea.xMin = (long)fmin( (double)curGlyphX, (double)rasterRef.x);
-                toCheckArea.yMin = (long)fmin( (double)curGlyphY, (double)rasterRef.y);
-                toCheckArea.yMax = (long)fmax( (double)curGlyphY, (double)rasterRef.y);
+                toCheckArea.xMin = curGlyphX;
+                
+
 
                 #ifdef debug
                     __rfont_bbox_print("(INTERSEC) AREA", &toCheckArea);
                 #endif
 
-                long renderX = charPos->x + curCharX;
-                long renderY = charPos->y + curCharY;
+                long renderX = charPos->x + deltaScrX;
                 //send to render function with offset to cur pos
                 rFunc((long const * const )&renderX, (long const * const )&renderY, data);
             }

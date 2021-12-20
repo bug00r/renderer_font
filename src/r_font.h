@@ -13,7 +13,8 @@ typedef struct {
 
 typedef struct {
     rf_bbox_t bbox;
-    dl_list_t *outlines;
+    vec2_t *outlines;
+    size_t cntOutlines;
 } rf_glyph_t;
 
 /* a Collection of all provided glyphs */
