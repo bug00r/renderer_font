@@ -43,13 +43,6 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
     rf_glyph_container_t *glyphs = ctx->glyps;
     rf_glyph_t *glyph = glyphs->get(charcode);
     
-    if ( glyph->cntOutlines < 2 ) {
-        #ifdef debug
-            printf("not enough outlines available.");
-        #endif
-        return;
-    }
-    
     rf_bbox_t* glyphBbox = &glyph->bbox;
  
     vec2_t* charPos = _charPos;
@@ -78,9 +71,9 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
     float yOffsetChar = ( glyphBbox->yMin < 0 ? ( glyphBbox->yMin / lenGlyph.y ) * lenChar.y : 0 );
 
     #ifdef debug
-        printf("glyph Ratio: %f char Ratio: %f diff: %f\n", xRatioGlyph, xRatioChar, xRatioDiff);
+        printf("glyph Ratio: %.2f char Ratio: %.2f diff: %.2f\n", xRatioGlyph, xRatioChar, xRatioDiff);
         printf("old xMAx: %ld aligned xMax: %ld\n", charBbox->xMax, alignedXMax);
-        printf("Offset (x/y): %f / %f\n", xOffsetChar, yOffsetChar);
+        printf("Offset (x/y): %.2f / %.2f\n", xOffsetChar, yOffsetChar);
     #endif
 
     /* based on negative glyph outlines the wanted positive charBbox has to corrected to negative delta like letter "g" 
@@ -101,13 +94,18 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
        
        INTO CONVERTER
     */
-    vec2_t rasterRef = { 
+    /*vec2_t rasterRef = { 
         glyphBbox->xMax + (( (float)glyphBbox->xMax - (float)glyphBbox->xMin ) * .5f ), 
+        glyphBbox->yMin + (( (float)glyphBbox->yMax - (float)glyphBbox->yMin ) * .5f )
+    };*/
+
+    vec2_t rasterRef = { 
+        glyphBbox->xMax * 5.f, 
         glyphBbox->yMin + (( (float)glyphBbox->yMax - (float)glyphBbox->yMin ) * .5f )
     };
 
     #ifdef debug
-        printf("RasterRef: x: %f y: %f\n", rasterRef.x, rasterRef.y);
+        printf("RasterRef: x: %.2f y: %.2f\n", rasterRef.x, rasterRef.y);
     #endif
 
     rf_bbox_t toCheckArea = {
@@ -152,10 +150,9 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
 
                 for ( size_t curOutline = 0; curOutline < glyph->cntOutlines; ++curOutline)
                 {
-
                     rf_outlines_t *outline = &glyph->outlines[curOutline];
-                    
-                    for ( size_t curOutlinePt = 1; curOutlinePt < outline->cntPoints; ++curOutlinePt)
+
+                    for ( size_t curOutlinePt = 1; curOutlinePt <= outline->cntPoints; ++curOutlinePt)
                     {
 
                         vec2_t *start = &outline->points[curOutlinePt-1];
@@ -169,8 +166,18 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
                         if ( __r_font_must_check_for_intersection(start, end, &toCheckArea) )
                         {
                             
-                            if ( line_intersect_denominator(&curPoint, &rasterRef, start, end) != 0.f)
+                            bool intersec = lineseg_intersect(&curPoint, &rasterRef, start, end);
+
+                            #ifdef debug
+                            printf("\tINSTERSECTION TEST (intersec: %i)\n", intersec);
+                            #endif
+
+                            if ( intersec )
                             {
+                                
+                                #ifdef debug
+                                printf("\t\tintersects with pos(negative is left) ");
+                                #endif                               
 
                                 /* computing side */
                                 vec3_t first = { start->x, start->y, 0.f };
@@ -179,18 +186,56 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
 
                                 float place = place_of_vec3(&first, &last, &middle);
 
-                                intersectionSum += ( place <= 0.f ? -1 : 1 );
-                                
+                                #ifdef debug
+                                printf("f l m pos:= %.2f/%.2f | %.2f/%.2f | %.2f/%.2f | %.2f\n",
+                                       first.x, first.y, last.x, last.y, middle.x, middle.y, place);
+                                #endif     
+                                if ( place != 0.f )
+                                {
+                                    intersectionSum += ( place > 0.f ? -1 : 1 ); 
+                                } 
+                                 
+
+                                #ifdef debug
+                                printf("\t\tintersection sum: %i\n", intersectionSum);
+                                #endif
+
+                            #ifndef debug
                             }
+                            #else
+                            } else {
+                                printf("\t\tno intersection.\n");
+                            }
+                            #endif
+                        #ifndef debug
                         }
+                        #else
+                        } else {
+                            printf("\t\tNO INTERSECTION TEST\n");
+                        }
+                        #endif
                     }
-                }
+
+
+                    
+                }   
+
+                #ifdef debug
+                    printf(" CHECK intersection sum: %i\n", intersectionSum);
+                #endif
 
                 if ( intersectionSum != 0 ) 
                 {
                     long renderX = charPos->x + deltaScrX;
                     long renderY = charPos->y + deltaScrY;
-                    //send to render function with offset to cur pos
+
+                    /* invert Y Axis */
+                    renderY = lenChar.y - renderY;// interpolate_lin(renderY, alignedCharBox.xMin, glyphBbox->xMin, alignedCharBox.xMax, glyphBbox->xMax);
+                    
+                    #ifdef debug
+                        printf("draw: %ld | %ld\n", renderX, renderY);
+                    #endif               
+
                     rFunc((long const * const )&renderX, (long const * const )&renderY, data);
                 }
 
