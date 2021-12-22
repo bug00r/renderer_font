@@ -21,7 +21,6 @@ typedef struct {
 typedef struct {
     rf_bbox_t bbox;
     rf_outlines_t *outlines;
-    size_t cntOutlines;
 } rf_glyph_t;
 
 /* a Collection of all provided glyphs */

@@ -120,14 +120,6 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
             /* screenresult y */
             long curGlyphY = interpolate_lin(deltaScrY, alignedCharBox.yMin, glyphBbox->yMin, alignedCharBox.yMax, glyphBbox->yMax);
 
-            /*if ( curGlyphY < rasterRef.y ) {
-                toCheckArea.yMin = curGlyphY;
-                toCheckArea.yMax = rasterRef.y;
-            } else {
-                toCheckArea.yMin = rasterRef.y;
-                toCheckArea.yMax = curGlyphY;
-            }*/
-
             vec2_t curPoint;
             curPoint.y = (float)curGlyphY;
 
@@ -141,16 +133,17 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
 
                 /* Here we add intersection logic */
                 curPoint.x = (float)curGlyphX;
-                //vec2_t checkRef;
-                //vec2_sub_dest(&checkRef, &rasterRef, &curPoint);
 
                 toCheckArea.xMin = curGlyphX;
                 
                 int intersectionSum = 0;
+                
+                rf_outlines_t *outlines = &glyph->outlines[0];
+                rf_outlines_t *outline = &outlines[0];
 
-                for ( size_t curOutline = 0; curOutline < glyph->cntOutlines; ++curOutline)
+                do
                 {
-                    rf_outlines_t *outline = &glyph->outlines[curOutline];
+                    //rf_outlines_t *outline = &glyph->outlines[curOutline];
 
                     for ( size_t curOutlinePt = 1; curOutlinePt < outline->cntPoints; ++curOutlinePt)
                     {
@@ -199,7 +192,7 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
                                        first.x, first.y, last.x, last.y, middle.x, middle.y, place);
                                 #endif     
 
-                                 intersectionSum += ( place >= 0.f ? -1 : 1 ); 
+                                intersectionSum += ( place >= 0.f ? -1 : 1 ); 
                                 
                                 #ifdef debug
                                 printf("\t\tintersection sum: %i\n", intersectionSum);
@@ -220,10 +213,8 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
                         }
                         #endif
                     }
-
-
                     
-                }   
+                } while ( (++outline)->points != NULL );
 
                 #ifdef debug
                     printf(" CHECK intersection sum: %i\n", intersectionSum);
@@ -232,7 +223,7 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
                 if ( intersectionSum != 0 ) 
                 {
                     long renderX = charPos->x + deltaScrX;
-                    long renderY = charPos->y + deltaScrY;
+                    long renderY = -charPos->y + deltaScrY;
 
                     /* invert Y Axis */
                     renderY = lenChar.y - renderY;// interpolate_lin(renderY, alignedCharBox.xMin, glyphBbox->xMin, alignedCharBox.xMax, glyphBbox->xMax);
