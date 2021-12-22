@@ -143,7 +143,6 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
 
                 do
                 {
-                    //rf_outlines_t *outline = &glyph->outlines[curOutline];
 
                     for ( size_t curOutlinePt = 1; curOutlinePt < outline->cntPoints; ++curOutlinePt)
                     {

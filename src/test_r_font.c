@@ -68,6 +68,8 @@ static rf_outlines_t glyph1_outlines[] = {
     { NULL, 0 },
 };
 
+//static rf_glyph_t __rf_test_glyph = { bbox_1, &glyph1_outlines[0]};
+
 /* GLYPH 2 TEST */
 
 static const rf_bbox_t bbox_2 = {0l, 0l, 100l, 100l};
