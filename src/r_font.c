@@ -14,6 +14,16 @@ void rfont_init(rf_ctx_t* ctx, rf_provider_t *provider)
 {
     ctx->provider = provider;
     ctx->glyps = provider->get();
+
+    rf_provider_init_t *init = provider->init;
+    if ( init != NULL )
+    {
+        INIT_PROVIDER_FN init_fn =  init->get_init_fn();
+        if ( init_fn != NULL )
+        {
+            init_fn(ctx->provider, init->init_data);
+        }
+    }
 }
 
 void rfont_cleanup(rf_ctx_t *ctx) 
@@ -101,7 +111,8 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
 
     vec2_t rasterRef = { 
         glyphBbox->xMax + 1.f, 
-        glyphBbox->yMin + (( (float)glyphBbox->yMax - (float)glyphBbox->yMin ) * .5f )
+        glyphBbox->yMax + 1.f
+        //glyphBbox->yMin + (( (float)glyphBbox->yMax - (float)glyphBbox->yMin ) * .5f )
     };
 
     #ifdef debug

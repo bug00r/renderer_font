@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <assert.h>
 
+#include "default_provider.h"
 /*
 
 typedef struct {
@@ -47,7 +48,7 @@ static void __rf_test_render_func(long const * const x, long const * const y, vo
     //printf("r:= x: %ld y: %ld\n", *x, *y);
     if ( (*x < 0 ) || ( *y < 0) || ( *y >= ctx->height) || ( *x >= ctx->width) ) return;
     
-    ctx->buffer[(*y * ctx->width) + *x] = 1L;
+    ctx->buffer[(*y * ctx->width) + *x] = 1;
 }
 
 /* GLYPH 1 TEST */
@@ -361,8 +362,8 @@ static void __rf_test_clearBuffer(__rf_test_buffer_ctx_t *_buffCtx)
 {
     __rf_test_buffer_ctx_t * buffCtx = _buffCtx;
     size_t max = buffCtx->width * buffCtx->height;
-    for ( size_t i = max-1; i--;  ) {
-        buffCtx->buffer[i] = 0L;
+    for ( size_t i = 0; i < max; ++i  ) {
+        buffCtx->buffer[i] = 0;
     }
 }
 
@@ -370,6 +371,7 @@ static void __rf_test_printBuffer(__rf_test_buffer_ctx_t *_buffCtx)
 {
     __rf_test_buffer_ctx_t * buffCtx = _buffCtx;
     size_t max = buffCtx->width * buffCtx->height;
+
     for( size_t i = 0; i < max; ++i )
     {
         if ( (i > 0) && ((i % buffCtx->width) == 0) ) printf("\n");
@@ -377,11 +379,30 @@ static void __rf_test_printBuffer(__rf_test_buffer_ctx_t *_buffCtx)
     }
 }
 
+static int __rf_test_data = 42;
+void __rf_test_init_fn(void *_provider, void *init_data)
+{
+    rf_provider_t *provider = (rf_provider_t *)_provider;
+    int *data = (int *)init_data;
+
+    assert(provider != NULL);
+    assert(*data == __rf_test_data);
+}
+
+static INIT_PROVIDER_FN __rf_test_get_init_fn()
+{
+    return __rf_test_init_fn;
+} 
+
 static void test_r_font_raster_dummy() 
 {
     DEBUG_LOG(">>>\n");
 
-    rf_provider_t provider = { __rf_test_glcon_get, __rf_test_glcon_free};
+    rf_provider_init_t provider_init;
+    provider_init.get_init_fn = __rf_test_get_init_fn;
+    provider_init.init_data = &__rf_test_data;
+
+    rf_provider_t provider = { &provider_init, __rf_test_glcon_get, __rf_test_glcon_free};
 
     rf_ctx_t rf_ctx;
     rfont_init(&rf_ctx, &provider);
@@ -441,6 +462,34 @@ static void test_r_font_raster_dummy()
     DEBUG_LOG("<<<\n");
 }
 
+static void test_r_font_raster_default_provider() 
+{
+    DEBUG_LOG(">>>\n");
+
+    rf_provider_t* provider = get_default_provider();
+
+    rf_ctx_t rf_ctx;
+    rfont_init(&rf_ctx, provider);
+
+    size_t width = 40;
+    size_t height = 40;
+
+    rf_bbox_t charBbox = {0, 0, 30, 30};
+    vec2_t charPos = {0.f, 0.f};
+
+    long buffer[1600];
+
+    __rf_test_buffer_ctx_t buffCtx = {buffer, width, height};   
+
+    __rf_test_clearBuffer(&buffCtx);
+    rfont_raster(&rf_ctx, &charPos, 174, &charBbox, __rf_test_render_func, &buffCtx);
+    
+    printf("\n\n");
+    __rf_test_printBuffer(&buffCtx);
+
+    DEBUG_LOG("<<<\n");
+}
+
 int main(int argc, char* argv[])
 {
     /* unused */
@@ -450,6 +499,8 @@ int main(int argc, char* argv[])
     DEBUG_LOG(">> Start renderer font tests:\n");
 
     test_r_font_raster_dummy();
+
+    test_r_font_raster_default_provider();
 
     DEBUG_LOG("<< renderer font tests:\n");
 	return 0;
