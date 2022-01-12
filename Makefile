@@ -69,7 +69,7 @@ LIB_NAME=r_font
 LIBS= $(LIB_NAME) freetype dl_list utilsmath vec mat
 
 TESTLIB=$(patsubst %,-l%,$(LIBS))
-_TEST_SRC_FILES=test_r_font default_provider
+_TEST_SRC_FILES=test_r_font font_provider_default
 TESTSRC=$(patsubst %,src/%,$(patsubst %,%.c,$(_TEST_SRC_FILES)))
 TESTBIN=test_r_font.exe
 

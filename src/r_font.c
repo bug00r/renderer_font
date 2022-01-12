@@ -46,7 +46,7 @@ static bool __r_font_must_check_for_intersection(vec2_t *p1, vec2_t *p2, rf_bbox
 }
 
 /*_color = (unsigned char)interpolate_lin(_color, renderer->max_z, 0.f, renderer->min_z, 255.f);*/
-void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode, rf_bbox_t* _charBbox, RASTER_FONT_FUNC rFunc, void *data)
+void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, rf_bbox_t* _charBbox, RASTER_FONT_FUNC rFunc, void *data)
 {
     if ( rFunc == NULL || ctx == NULL || _charBbox == NULL ) return;
 
@@ -55,7 +55,6 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
     
     rf_bbox_t* glyphBbox = &glyph->bbox;
  
-    vec2_t* charPos = _charPos;
     rf_bbox_t* charBbox = _charBbox;
 
     #ifdef debug
@@ -232,17 +231,7 @@ void rfont_raster(rf_ctx_t const * ctx, vec2_t* _charPos, unsigned long charcode
 
                 if ( intersectionSum != 0 ) 
                 {
-                    long renderX = charPos->x + deltaScrX;
-                    long renderY = -charPos->y + deltaScrY;
-
-                    /* invert Y Axis */
-                    renderY = lenChar.y - renderY;// interpolate_lin(renderY, alignedCharBox.xMin, glyphBbox->xMin, alignedCharBox.xMax, glyphBbox->xMax);
-                    
-                    #ifdef debug
-                        printf("draw: %ld | %ld\n", renderX, renderY);
-                    #endif               
-
-                    rFunc((long const * const )&renderX, (long const * const )&renderY, data);
+                    rFunc((long const * const )&deltaScrX, (long const * const )&deltaScrY, data);
                 }
 
             }
