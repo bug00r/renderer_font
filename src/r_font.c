@@ -1,6 +1,6 @@
 #include "r_font.h"
 
-//#ifdef debug
+#ifdef debug
 #include <stdio.h>
 //Debug output
 void __rfont_bbox_print(const char *label, rf_bbox_t *bbox) {
@@ -8,7 +8,7 @@ void __rfont_bbox_print(const char *label, rf_bbox_t *bbox) {
                                                                  , bbox->xMax, bbox->yMax);
 }  
 
-//#endif
+#endif
 
 void rfont_init(rf_ctx_t* ctx, rf_provider_t *provider)
 {
@@ -45,33 +45,28 @@ static bool __r_font_must_check_for_intersection(vec2_t *p1, vec2_t *p2, rf_bbox
     return __r_font_vec2_inside_bbox(p1, bbox) || __r_font_vec2_inside_bbox(p2, bbox);
 }
 
-/*_color = (unsigned char)interpolate_lin(_color, renderer->max_z, 0.f, renderer->min_z, 255.f);*/
-void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, rf_bbox_t* _charBbox, RASTER_FONT_FUNC rFunc, void *data)
+void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, float charwidth, RASTER_FONT_FUNC rFunc, void *data)
 {
-    if ( rFunc == NULL || ctx == NULL || _charBbox == NULL ) return;
+    if ( rFunc == NULL || ctx == NULL || charwidth <= 0.f ) return;
 
     rf_glyph_container_t *glyphs = ctx->glyps;
     rf_glyph_t *glyph = glyphs->get(charcode);
     
     rf_bbox_t* glyphBbox = &glyph->bbox;
- 
-    rf_bbox_t* charBbox = _charBbox;
 
     rf_bbox_t* globalBbox = &glyphs->globalBbox;
 
-    //#ifdef debug
-        __rfont_bbox_print("(IN)char Bbox", charBbox);
+    #ifdef debug
         __rfont_bbox_print("(IN)glyph Bbox", glyphBbox);
         __rfont_bbox_print("(IN)global Bbox", globalBbox);
-    //#endif
+    #endif
 
     /* TO CONVERTER */
     vec2_t lenGlyph = { ((float)glyphBbox->xMax - (float)glyphBbox->xMin), ((float)glyphBbox->yMax - (float)glyphBbox->yMin) };
-    vec2_t lenChar = { ((float)charBbox->xMax - (float)charBbox->xMin), ((float)charBbox->yMax - (float)charBbox->yMin) };
     vec2_t lenGlobal = { ((float)globalBbox->xMax - (float)globalBbox->xMin), ((float)globalBbox->yMax - (float)globalBbox->yMin) };
     /* TO CONVERTER */
-    float pixelRatio = ((float)charBbox->xMax / lenGlobal.x);
-    vec2_t globalPixel = { (float)charBbox->xMax , pixelRatio * lenGlobal.y };
+    float pixelRatio = ( charwidth / lenGlobal.x);
+    vec2_t globalPixel = { charwidth , pixelRatio * lenGlobal.y };
 
     vec2_t glyphPixel = { pixelRatio * lenGlyph.x, pixelRatio * lenGlyph.y };
  
@@ -80,8 +75,6 @@ void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, rf_bbox_t* _char
     float yOffsetChar = ( glyphBbox->yMin < 0 ? glyphBbox->yMin * pixelRatio : 0 );
 
     #ifdef debug
-        printf("glyph Ratio: %.2f char Ratio: %.2f diff: %.2f\n", xRatioGlyph, xRatioChar, xRatioDiff);
-        printf("old xMAx: %ld aligned xMax: %ld\n", charBbox->xMax, alignedXMax);
         printf("Offset (x/y): %.2f / %.2f\n", xOffsetChar, yOffsetChar);
     #endif
 
@@ -91,18 +84,10 @@ void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, rf_bbox_t* _char
         /* xMax */glyphPixel.x,
         /* yMax */glyphPixel.y,
     };
-    //#ifdef debug
+    
+    #ifdef debug
         __rfont_bbox_print("\n(ALIGNED)char Bbox", &alignedCharBox);
-    //#endif
-
-    /* raster reference point for intersection computing 
-       
-       INTO CONVERTER
-    */
-    /*vec2_t rasterRef = { 
-        glyphBbox->xMax + (( (float)glyphBbox->xMax - (float)glyphBbox->xMin ) * .5f ), 
-        glyphBbox->yMin + (( (float)glyphBbox->yMax - (float)glyphBbox->yMin ) * .5f )
-    };*/
+    #endif
 
     vec2_t rasterRef = { 
         glyphBbox->xMax + 1.f, 
