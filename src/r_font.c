@@ -1,6 +1,6 @@
 #include "r_font.h"
 
-#ifdef debug
+//#ifdef debug
 #include <stdio.h>
 //Debug output
 void __rfont_bbox_print(const char *label, rf_bbox_t *bbox) {
@@ -8,7 +8,7 @@ void __rfont_bbox_print(const char *label, rf_bbox_t *bbox) {
                                                                  , bbox->xMax, bbox->yMax);
 }  
 
-#endif
+//#endif
 
 void rfont_init(rf_ctx_t* ctx, rf_provider_t *provider)
 {
@@ -57,27 +57,27 @@ void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, rf_bbox_t* _char
  
     rf_bbox_t* charBbox = _charBbox;
 
-    #ifdef debug
+    rf_bbox_t* globalBbox = &glyphs->globalBbox;
+
+    //#ifdef debug
         __rfont_bbox_print("(IN)char Bbox", charBbox);
         __rfont_bbox_print("(IN)glyph Bbox", glyphBbox);
-    #endif
+        __rfont_bbox_print("(IN)global Bbox", globalBbox);
+    //#endif
 
     /* TO CONVERTER */
     vec2_t lenGlyph = { ((float)glyphBbox->xMax - (float)glyphBbox->xMin), ((float)glyphBbox->yMax - (float)glyphBbox->yMin) };
     vec2_t lenChar = { ((float)charBbox->xMax - (float)charBbox->xMin), ((float)charBbox->yMax - (float)charBbox->yMin) };
+    vec2_t lenGlobal = { ((float)globalBbox->xMax - (float)globalBbox->xMin), ((float)globalBbox->yMax - (float)globalBbox->yMin) };
     /* TO CONVERTER */
-    float xRatioGlyph = lenGlyph.x / lenGlyph.y;
-    float xRatioChar = lenChar.x / lenChar.y;
-    float xRatioDiff = xRatioGlyph - xRatioChar;
-    long alignedXMax = (float)charBbox->xMax + ((float)charBbox->xMax * xRatioDiff);
+    float pixelRatio = ((float)charBbox->xMax / lenGlobal.x);
+    vec2_t globalPixel = { (float)charBbox->xMax , pixelRatio * lenGlobal.y };
 
-    /* ( glyphBbox->xMin < 0 ? ( glyphBbox->xMin / lenGlyph.x ) 
-       ( glyphBbox->yMin < 0 ? ( glyphBbox->yMin / lenGlyph.y )
+    vec2_t glyphPixel = { pixelRatio * lenGlyph.x, pixelRatio * lenGlyph.y };
+ 
 
-       TO CONVERTER
-     */
-    float xOffsetChar = ( glyphBbox->xMin < 0 ? ( glyphBbox->xMin / lenGlyph.x ) * lenChar.x : 0 );
-    float yOffsetChar = ( glyphBbox->yMin < 0 ? ( glyphBbox->yMin / lenGlyph.y ) * lenChar.y : 0 );
+    float xOffsetChar = ( glyphBbox->xMin < 0 ? glyphBbox->xMin * pixelRatio : 0 );
+    float yOffsetChar = ( glyphBbox->yMin < 0 ? glyphBbox->yMin * pixelRatio : 0 );
 
     #ifdef debug
         printf("glyph Ratio: %.2f char Ratio: %.2f diff: %.2f\n", xRatioGlyph, xRatioChar, xRatioDiff);
@@ -85,19 +85,15 @@ void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, rf_bbox_t* _char
         printf("Offset (x/y): %.2f / %.2f\n", xOffsetChar, yOffsetChar);
     #endif
 
-    /* based on negative glyph outlines the wanted positive charBbox has to corrected to negative delta like letter "g" 
-       Sum: We calculate the negative delta for the charBbox based on the glyphBbox
-    */
     rf_bbox_t alignedCharBox = {
-        /* xMin */charBbox->xMin + (long)xOffsetChar,
-        /* yMin */charBbox->yMin + (long)yOffsetChar,
-        /* xMax */alignedXMax + (long)xOffsetChar,
-        /* yMax */charBbox->yMax + (long)yOffsetChar
+        /* xMin */0,
+        /* yMin */0,
+        /* xMax */glyphPixel.x,
+        /* yMax */glyphPixel.y,
     };
-
-    #ifdef debug
-        __rfont_bbox_print("(ALIGNED)char Bbox", &alignedCharBox);
-    #endif
+    //#ifdef debug
+        __rfont_bbox_print("\n(ALIGNED)char Bbox", &alignedCharBox);
+    //#endif
 
     /* raster reference point for intersection computing 
        
@@ -231,7 +227,10 @@ void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, rf_bbox_t* _char
 
                 if ( intersectionSum != 0 ) 
                 {
-                    rFunc((long const * const )&deltaScrX, (long const * const )&deltaScrY, data);
+                    long renderX = deltaScrX + round_f(xOffsetChar);
+                    long renderY = deltaScrY + round_f(yOffsetChar);
+
+                    rFunc((long const * const )&renderX, (long const * const )&renderY, data);
                 }
 
             }

@@ -453,7 +453,7 @@ static void test_r_font_raster_default_provider()
     size_t width = 40;
     size_t height = 40;
 
-    rf_bbox_t charBbox = {0, 0, 25, 25};
+    rf_bbox_t charBbox = {0, 0, 35, 30};
 
     long buffer[1600];
 
@@ -461,10 +461,27 @@ static void test_r_font_raster_default_provider()
 
     __rf_test_clearBuffer(&buffCtx);
     rfont_raster(&rf_ctx, 220, &charBbox, __rf_test_render_func, &buffCtx);
-    
-    buffCtx.charPos = (vec2_t){20.f, 7.f};
+
+    buffCtx.charPos = (vec2_t){22.f, 7.f};
     rfont_raster(&rf_ctx, 252, &charBbox, __rf_test_render_func, &buffCtx);
     
+    printf("\n\n");
+    __rf_test_printBuffer(&buffCtx);
+
+    __rf_test_clearBuffer(&buffCtx);
+    buffCtx.charPos = (vec2_t){0.f, 9.f};
+    rfont_raster(&rf_ctx, 71, &charBbox, __rf_test_render_func, &buffCtx);
+
+    buffCtx.charPos = (vec2_t){20.f, 9.f};
+    rfont_raster(&rf_ctx, 103, &charBbox, __rf_test_render_func, &buffCtx);
+    
+    printf("\n\n");
+    __rf_test_printBuffer(&buffCtx);
+
+    __rf_test_clearBuffer(&buffCtx);
+    buffCtx.charPos = (vec2_t){5.f, 10.f};
+    rfont_raster(&rf_ctx, 64, &charBbox, __rf_test_render_func, &buffCtx);
+
     printf("\n\n");
     __rf_test_printBuffer(&buffCtx);
 
