@@ -43,7 +43,7 @@ typedef struct {
     vec2_t charPos;
 } __rf_test_buffer_ctx_t;
 
-static void __rf_test_render_func(long const * const x, long const * const y, void *data)
+static void __rf_test_render_func(float const * const x, float const * const y, void *data)
 {
     __rf_test_buffer_ctx_t *ctx = data;
     vec2_t *charPos = &ctx->charPos;

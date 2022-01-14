@@ -48,7 +48,7 @@ typedef struct {
     rf_provider_t *provider;
 } rf_ctx_t;
 
-typedef void (*RASTER_FONT_FUNC)(long const * const x, long const * const y, void *data);
+typedef void (*RASTER_FONT_FUNC)(float const * const x, float const * const y, void *data);
 
 /* inits context and calls providers init method */
 void rfont_init(rf_ctx_t *ctx, rf_provider_t *provider);

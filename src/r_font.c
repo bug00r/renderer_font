@@ -71,8 +71,8 @@ void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, float charwidth,
     vec2_t glyphPixel = { pixelRatio * lenGlyph.x, pixelRatio * lenGlyph.y };
  
 
-    float xOffsetChar = ( glyphBbox->xMin < 0 ? glyphBbox->xMin * pixelRatio : 0 );
-    float yOffsetChar = ( glyphBbox->yMin < 0 ? glyphBbox->yMin * pixelRatio : 0 );
+    float xOffsetChar = ( glyphBbox->xMin < 0 ? (float)glyphBbox->xMin * pixelRatio : 0 );
+    float yOffsetChar = ( glyphBbox->yMin < 0 ? (float)glyphBbox->yMin * pixelRatio : 0 );
 
     #ifdef debug
         printf("Offset (x/y): %.2f / %.2f\n", xOffsetChar, yOffsetChar);
@@ -91,7 +91,7 @@ void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, float charwidth,
 
     vec2_t rasterRef = { 
         glyphBbox->xMax + 1.f, 
-        glyphBbox->yMax + 1.f
+        glyphBbox->yMin - 1.f
         //glyphBbox->yMin + (( (float)glyphBbox->yMax - (float)glyphBbox->yMin ) * .5f )
     };
 
@@ -212,10 +212,10 @@ void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, float charwidth,
 
                 if ( intersectionSum != 0 ) 
                 {
-                    long renderX = deltaScrX + round_f(xOffsetChar);
-                    long renderY = deltaScrY + round_f(yOffsetChar);
+                    float renderX = (float)deltaScrX + xOffsetChar;//round_f(xOffsetChar);
+                    float renderY = (float)deltaScrY + yOffsetChar;//round_f(yOffsetChar);
 
-                    rFunc((long const * const )&renderX, (long const * const )&renderY, data);
+                    rFunc((float const * const )&renderX, (float const * const )&renderY, data);
                 }
 
             }
