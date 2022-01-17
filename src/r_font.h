@@ -54,5 +54,6 @@ typedef void (*RASTER_FONT_FUNC)(float const * const x, float const * const y, v
 void rfont_init(rf_ctx_t *ctx, rf_provider_t *provider);
 void rfont_cleanup(rf_ctx_t *ctx);
 void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, float charwidth, RASTER_FONT_FUNC rFunc, void *data);
+void rfont_raster_text(rf_ctx_t const * ctx, unsigned char const * const text, float charwidth, RASTER_FONT_FUNC rFunc, void *data);
 
 #endif

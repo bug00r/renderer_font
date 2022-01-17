@@ -45,7 +45,12 @@ static bool __r_font_must_check_for_intersection(vec2_t *p1, vec2_t *p2, rf_bbox
     return __r_font_vec2_inside_bbox(p1, bbox) || __r_font_vec2_inside_bbox(p2, bbox);
 }
 
-void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, float charwidth, RASTER_FONT_FUNC rFunc, void *data)
+typedef struct {
+    vec2_t curPos;
+    vec2_t lastMax;
+} __rf_options_t;
+
+static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx, unsigned long charcode, float charwidth, RASTER_FONT_FUNC rFunc, void *data)
 {
     if ( rFunc == NULL || ctx == NULL || charwidth <= 0.f ) return;
 
@@ -55,6 +60,8 @@ void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, float charwidth,
     rf_bbox_t* glyphBbox = &glyph->bbox;
 
     rf_bbox_t* globalBbox = &glyphs->globalBbox;
+
+    __rf_options_t * options = _options; 
 
     #ifdef debug
         __rfont_bbox_print("(IN)glyph Bbox", glyphBbox);
@@ -91,8 +98,8 @@ void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, float charwidth,
 
     vec2_t rasterRef = { 
         glyphBbox->xMax + 1.f, 
-        glyphBbox->yMin - 1.f
-        //glyphBbox->yMin + (( (float)glyphBbox->yMax - (float)glyphBbox->yMin ) * .5f )
+        //glyphBbox->yMin - 1.f
+        glyphBbox->yMin + (( (float)glyphBbox->yMax - (float)glyphBbox->yMin ) * .5f )
     };
 
     #ifdef debug
@@ -108,116 +115,144 @@ void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, float charwidth,
 
     for (long deltaScrY = alignedCharBox.yMin; deltaScrY < alignedCharBox.yMax; ++deltaScrY )
     {
-            /* screenresult y */
-            long curGlyphY = interpolate_lin(deltaScrY, alignedCharBox.yMin, glyphBbox->yMin, alignedCharBox.yMax, glyphBbox->yMax);
+        /* screenresult y */
+        long curGlyphY = interpolate_lin(deltaScrY, alignedCharBox.yMin, glyphBbox->yMin, alignedCharBox.yMax, glyphBbox->yMax);
 
-            vec2_t curPoint;
-            curPoint.y = (float)curGlyphY;
+        vec2_t curPoint;
+        curPoint.y = (float)curGlyphY;
 
-            for (long deltaScrX = alignedCharBox.xMin; deltaScrX < alignedCharBox.xMax; ++deltaScrX )
+        for (long deltaScrX = alignedCharBox.xMin; deltaScrX < alignedCharBox.xMax; ++deltaScrX )
+        {
+            long curGlyphX = interpolate_lin(deltaScrX, alignedCharBox.xMin, glyphBbox->xMin, alignedCharBox.xMax, glyphBbox->xMax);
+            
+            #ifdef debug
+                printf("x/y conv:= char: %ld / %ld glyph: %ld / %ld \n", deltaScrX, deltaScrY, curGlyphX, curGlyphY);
+            #endif
+
+            /* Here we add intersection logic */
+            curPoint.x = (float)curGlyphX;
+
+            toCheckArea.xMin = curGlyphX;
+            
+            int intersectionSum = 0;
+            
+            rf_outlines_t *outlines = &glyph->outlines[0];
+            rf_outlines_t *outline = &outlines[0];
+
+            do
             {
-                long curGlyphX = interpolate_lin(deltaScrX, alignedCharBox.xMin, glyphBbox->xMin, alignedCharBox.xMax, glyphBbox->xMax);
-                
-                #ifdef debug
-                    printf("x/y conv:= char: %ld / %ld glyph: %ld / %ld \n", deltaScrX, deltaScrY, curGlyphX, curGlyphY);
-                #endif
 
-                /* Here we add intersection logic */
-                curPoint.x = (float)curGlyphX;
-
-                toCheckArea.xMin = curGlyphX;
-                
-                int intersectionSum = 0;
-                
-                rf_outlines_t *outlines = &glyph->outlines[0];
-                rf_outlines_t *outline = &outlines[0];
-
-                do
+                for ( size_t curOutlinePt = 1; curOutlinePt < outline->cntPoints; ++curOutlinePt)
                 {
 
-                    for ( size_t curOutlinePt = 1; curOutlinePt < outline->cntPoints; ++curOutlinePt)
+                    vec2_t *start = &outline->points[curOutlinePt-1];
+                    vec2_t *end = &outline->points[curOutlinePt];
+                    
+                    if ( vec2_equals(start, &curPoint)) 
                     {
+                        #ifdef debug
+                        printf("reduce because edgepoint\n");
+                        #endif
+                        --intersectionSum;
+                    }
 
-                        vec2_t *start = &outline->points[curOutlinePt-1];
-                        vec2_t *end = &outline->points[curOutlinePt];
+                    #ifdef debug
+                        __rfont_bbox_print("(INTERSEC) AREA", &toCheckArea);
+                    #endif
+
+                    //intersects?
+                    if ( __r_font_must_check_for_intersection(start, end, &toCheckArea) )
+                    {
                         
-                        if ( vec2_equals(start, &curPoint)) 
-                        {
-                            #ifdef debug
-                            printf("reduce because edgepoint\n");
-                            #endif
-                            --intersectionSum;
-                        }
+                        bool intersec = lineseg_intersect(&curPoint, &rasterRef, start, end);
 
                         #ifdef debug
-                            __rfont_bbox_print("(INTERSEC) AREA", &toCheckArea);
+                        printf("\tINSTERSECTION TEST (intersec: %i)\n", intersec);
                         #endif
 
-                        //intersects?
-                        if ( __r_font_must_check_for_intersection(start, end, &toCheckArea) )
+                        if ( intersec )
                         {
                             
-                            bool intersec = lineseg_intersect(&curPoint, &rasterRef, start, end);
+                            #ifdef debug
+                            printf("\t\tintersects with pos(negative is left) ");
+                            #endif                               
+
+                            /* computing side */
+                            vec3_t first = { start->x, start->y, 0.f };
+                            vec3_t middle = { curPoint.x, curPoint.y, 0.f };
+                            vec3_t last = { end->x, end->y, 0.f };
+
+                            float place = place_of_vec3(&first, &last, &middle);
 
                             #ifdef debug
-                            printf("\tINSTERSECTION TEST (intersec: %i)\n", intersec);
+                            printf("f l m pos:= %.2f/%.2f | %.2f/%.2f | %.2f/%.2f | %.2f\n",
+                                    first.x, first.y, last.x, last.y, middle.x, middle.y, place);
+                            #endif     
+
+                            intersectionSum += ( place > 0.f ? -1 : 1 ); 
+                            
+                            #ifdef debug
+                            printf("\t\tintersection sum: %i\n", intersectionSum);
                             #endif
 
-                            if ( intersec )
-                            {
-                                
-                                #ifdef debug
-                                printf("\t\tintersects with pos(negative is left) ");
-                                #endif                               
-
-                                /* computing side */
-                                vec3_t first = { start->x, start->y, 0.f };
-                                vec3_t middle = { curPoint.x, curPoint.y, 0.f };
-                                vec3_t last = { end->x, end->y, 0.f };
-
-                                float place = place_of_vec3(&first, &last, &middle);
-
-                                #ifdef debug
-                                printf("f l m pos:= %.2f/%.2f | %.2f/%.2f | %.2f/%.2f | %.2f\n",
-                                       first.x, first.y, last.x, last.y, middle.x, middle.y, place);
-                                #endif     
-
-                                intersectionSum += ( place >= 0.f ? -1 : 1 ); 
-                                
-                                #ifdef debug
-                                printf("\t\tintersection sum: %i\n", intersectionSum);
-                                #endif
-
-                            #ifndef debug
-                            }
-                            #else
-                            } else {
-                                printf("\t\tno intersection.\n");
-                            }
-                            #endif
                         #ifndef debug
                         }
                         #else
                         } else {
-                            printf("\t\tNO INTERSECTION TEST\n");
+                            printf("\t\tno intersection.\n");
                         }
                         #endif
+                    #ifndef debug
                     }
-                    
-                } while ( (++outline)->points != NULL );
-
-                #ifdef debug
-                    printf(" CHECK intersection sum: %i\n", intersectionSum);
-                #endif
-
-                if ( intersectionSum != 0 ) 
-                {
-                    float renderX = (float)deltaScrX + xOffsetChar;//round_f(xOffsetChar);
-                    float renderY = (float)deltaScrY + yOffsetChar;//round_f(yOffsetChar);
-
-                    rFunc((float const * const )&renderX, (float const * const )&renderY, data);
+                    #else
+                    } else {
+                        printf("\t\tNO INTERSECTION TEST\n");
+                    }
+                    #endif
                 }
+                
+            } while ( (++outline)->points != NULL );
 
+            #ifdef debug
+                printf(" CHECK intersection sum: %i\n", intersectionSum);
+            #endif
+
+            if ( intersectionSum != 0 ) 
+            {
+                float renderX = options->curPos.x + (float)deltaScrX + xOffsetChar;//round_f(xOffsetChar);
+                float renderY = options->curPos.y + (float)deltaScrY + yOffsetChar;//round_f(yOffsetChar);
+
+                options->lastMax.x = ( options->lastMax.x < renderX ? renderX : options->lastMax.x );
+                options->lastMax.y = ( options->lastMax.y < renderY ? renderY : options->lastMax.y );
+
+                rFunc((float const * const )&renderX, (float const * const )&renderY, data);
             }
+
+        }
+    }
+}
+
+void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, float charwidth, RASTER_FONT_FUNC rFunc, void *data)
+{
+    __rf_options_t options;
+    options.curPos = (vec2_t){0.f, 0.f};
+    __r_font_raster_raw(&options, ctx, charcode, charwidth, rFunc, data);
+}
+
+void rfont_raster_text(rf_ctx_t const * ctx, unsigned char const * const text, float charwidth, RASTER_FONT_FUNC rFunc, void *data)
+{
+    __rf_options_t options;
+    options.curPos = (vec2_t){0.f, 0.f};
+    char *curChar = (char *)text;
+
+    float hGap = 2.f;
+
+    while( *curChar != '\0' )
+    {
+        __r_font_raster_raw(&options, ctx, *curChar, charwidth, rFunc, data);
+
+        options.curPos.x = options.lastMax.x + hGap;
+
+        curChar++;
     }
 }
