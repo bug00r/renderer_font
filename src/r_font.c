@@ -1,6 +1,6 @@
 #include "r_font.h"
 
-#ifdef debug
+//#ifdef debug
 #include <stdio.h>
 //Debug output
 void __rfont_bbox_print(const char *label, rf_bbox_t *bbox) {
@@ -8,7 +8,7 @@ void __rfont_bbox_print(const char *label, rf_bbox_t *bbox) {
                                                                  , bbox->xMax, bbox->yMax);
 }  
 
-#endif
+//#endif
 
 void rfont_init(rf_ctx_t* ctx, rf_provider_t *provider)
 {
@@ -86,8 +86,8 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
     #endif
 
     rf_bbox_t alignedCharBox = {
-        /* xMin */0,
-        /* yMin */0,
+        /* xMin */xOffsetChar,
+        /* yMin */yOffsetChar,
         /* xMax */glyphPixel.x,
         /* yMax */glyphPixel.y,
     };
@@ -97,9 +97,9 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
     #endif
 
     vec2_t rasterRef = { 
-        glyphBbox->xMax + 1.f, 
-        //glyphBbox->yMin - 1.f
-        glyphBbox->yMin + (( (float)glyphBbox->yMax - (float)glyphBbox->yMin ) * .5f )
+        globalBbox->xMin - 1.f, 
+        //globalBbox->yMin - 1.f
+        globalBbox->yMin + (( (float)globalBbox->yMax - (float)globalBbox->yMin ) * .5f )
     };
 
     #ifdef debug
@@ -116,17 +116,17 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
     for (long deltaScrY = alignedCharBox.yMin; deltaScrY < alignedCharBox.yMax; ++deltaScrY )
     {
         /* screenresult y */
-        long curGlyphY = interpolate_lin(deltaScrY, alignedCharBox.yMin, glyphBbox->yMin, alignedCharBox.yMax, glyphBbox->yMax);
+        float curGlyphY = interpolate_lin(deltaScrY, alignedCharBox.yMin, glyphBbox->yMin, alignedCharBox.yMax, glyphBbox->yMax);
 
         vec2_t curPoint;
         curPoint.y = (float)curGlyphY;
 
         for (long deltaScrX = alignedCharBox.xMin; deltaScrX < alignedCharBox.xMax; ++deltaScrX )
         {
-            long curGlyphX = interpolate_lin(deltaScrX, alignedCharBox.xMin, glyphBbox->xMin, alignedCharBox.xMax, glyphBbox->xMax);
+            float curGlyphX = interpolate_lin(deltaScrX, alignedCharBox.xMin, glyphBbox->xMin, alignedCharBox.xMax, glyphBbox->xMax);
             
             #ifdef debug
-                printf("x/y conv:= char: %ld / %ld glyph: %ld / %ld \n", deltaScrX, deltaScrY, curGlyphX, curGlyphY);
+                printf("x/y conv:= char: %ld / %ld glyph: %f / %f \n", deltaScrX, deltaScrY, curGlyphX, curGlyphY);
             #endif
 
             /* Here we add intersection logic */
@@ -159,7 +159,7 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
                     #ifdef debug
                         __rfont_bbox_print("(INTERSEC) AREA", &toCheckArea);
                     #endif
-
+                    //__rfont_bbox_print("(INTERSEC) AREA", &toCheckArea);
                     //intersects?
                     if ( __r_font_must_check_for_intersection(start, end, &toCheckArea) )
                     {
@@ -189,28 +189,16 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
                                     first.x, first.y, last.x, last.y, middle.x, middle.y, place);
                             #endif     
 
-                            intersectionSum += ( place > 0.f ? -1 : 1 ); 
+                            intersectionSum += ( place >= 0.f ? -1 : 1 ); 
                             
                             #ifdef debug
                             printf("\t\tintersection sum: %i\n", intersectionSum);
                             #endif
 
-                        #ifndef debug
+            
                         }
-                        #else
-                        } else {
-                            printf("\t\tno intersection.\n");
-                        }
-                        #endif
-                    #ifndef debug
                     }
-                    #else
-                    } else {
-                        printf("\t\tNO INTERSECTION TEST\n");
-                    }
-                    #endif
-                }
-                
+                }                
             } while ( (++outline)->points != NULL );
 
             #ifdef debug
