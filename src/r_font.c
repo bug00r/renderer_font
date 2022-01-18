@@ -73,21 +73,21 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
     vec2_t lenGlobal = { ((float)globalBbox->xMax - (float)globalBbox->xMin), ((float)globalBbox->yMax - (float)globalBbox->yMin) };
     /* TO CONVERTER */
     float pixelRatio = ( charwidth / lenGlobal.x);
-    vec2_t globalPixel = { charwidth , pixelRatio * lenGlobal.y };
+    vec2_t globalPixel = { ceilf(charwidth) , ceilf(pixelRatio * lenGlobal.y)};
 
-    vec2_t glyphPixel = { pixelRatio * lenGlyph.x, pixelRatio * lenGlyph.y };
+    vec2_t glyphPixel = { ceilf(pixelRatio * lenGlyph.x), ceilf(pixelRatio * lenGlyph.y) };
  
 
-    float xOffsetChar = ( glyphBbox->xMin < 0 ? (float)glyphBbox->xMin * pixelRatio : 0 );
-    float yOffsetChar = ( glyphBbox->yMin < 0 ? (float)glyphBbox->yMin * pixelRatio : 0 );
+    float xOffsetChar = ( glyphBbox->xMin != 0 ? (float)glyphBbox->xMin * pixelRatio : 0 );
+    float yOffsetChar = ( glyphBbox->yMin != 0 ? (float)glyphBbox->yMin * pixelRatio : 0 );
 
     #ifdef debug
         printf("Offset (x/y): %.2f / %.2f\n", xOffsetChar, yOffsetChar);
     #endif
 
     rf_bbox_t alignedCharBox = {
-        /* xMin */xOffsetChar,
-        /* yMin */yOffsetChar,
+        /* xMin */-1,
+        /* yMin */-1,
         /* xMax */glyphPixel.x,
         /* yMax */glyphPixel.y,
     };
@@ -97,9 +97,9 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
     #endif
 
     vec2_t rasterRef = { 
-        globalBbox->xMin - 1.f, 
-        //globalBbox->yMin - 1.f
-        globalBbox->yMin + (( (float)globalBbox->yMax - (float)globalBbox->yMin ) * .5f )
+        globalBbox->xMax + 1.f, 
+        globalBbox->yMin - 1.f
+        //globalBbox->yMin + (( (float)globalBbox->yMax - (float)globalBbox->yMin ) * .5f )
     };
 
     #ifdef debug
@@ -113,17 +113,20 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
         0L,/* will be set in loop */
     };
 
-    for (long deltaScrY = alignedCharBox.yMin; deltaScrY < alignedCharBox.yMax; ++deltaScrY )
+    long alignedCharBoxYMax = alignedCharBox.yMax - 1;
+    long alignedCharBoxXMax = alignedCharBox.xMax - 1;
+    
+    for (long deltaScrY = alignedCharBox.yMin; deltaScrY < alignedCharBoxYMax /*alignedCharBox.yMax*/; ++deltaScrY)
     {
         /* screenresult y */
-        float curGlyphY = interpolate_lin(deltaScrY, alignedCharBox.yMin, glyphBbox->yMin, alignedCharBox.yMax, glyphBbox->yMax);
+        float curGlyphY = interpolate_lin(deltaScrY + 1, alignedCharBox.yMin, glyphBbox->yMin, alignedCharBox.yMax, glyphBbox->yMax);
 
         vec2_t curPoint;
         curPoint.y = (float)curGlyphY;
 
-        for (long deltaScrX = alignedCharBox.xMin; deltaScrX < alignedCharBox.xMax; ++deltaScrX )
+        for (long deltaScrX = alignedCharBox.xMin; deltaScrX < alignedCharBoxXMax/*alignedCharBox.xMax*/; ++deltaScrX)
         {
-            float curGlyphX = interpolate_lin(deltaScrX, alignedCharBox.xMin, glyphBbox->xMin, alignedCharBox.xMax, glyphBbox->xMax);
+            float curGlyphX = interpolate_lin(deltaScrX + 1, alignedCharBox.xMin, glyphBbox->xMin, alignedCharBox.xMax, glyphBbox->xMax);
             
             #ifdef debug
                 printf("x/y conv:= char: %ld / %ld glyph: %f / %f \n", deltaScrX, deltaScrY, curGlyphX, curGlyphY);
@@ -198,7 +201,8 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
             
                         }
                     }
-                }                
+                }    
+
             } while ( (++outline)->points != NULL );
 
             #ifdef debug

@@ -501,14 +501,14 @@ static void test_r_text_raster_default_provider()
     size_t width = 120;
     size_t height = 40;
 
-    float charwidth = 25.f;
+    float charwidth = 35.f;
 
     long buffer[4800];
 
-    __rf_test_buffer_ctx_t buffCtx = {buffer, width, height, (vec2_t){0.f, 7.f}};   
+    __rf_test_buffer_ctx_t buffCtx = {buffer, width, height, (vec2_t){3.f, 10.f}};   
 
     __rf_test_clearBuffer(&buffCtx);
-    rfont_raster_text(&rf_ctx, (unsigned char const * const)"123456", charwidth, __rf_test_render_func, &buffCtx);
+    rfont_raster_text(&rf_ctx, (unsigned char const * const)"AaBbCc", charwidth, __rf_test_render_func, &buffCtx);
 
     printf("\n");
     __rf_test_printBuffer(&buffCtx);
