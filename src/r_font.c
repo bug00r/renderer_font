@@ -98,8 +98,7 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
 
     vec2_t rasterRef = { 
         globalBbox->xMax + 1.f, 
-        globalBbox->yMin - 1.f
-        //globalBbox->yMin + (( (float)globalBbox->yMax - (float)globalBbox->yMin ) * .5f )
+        globalBbox->yMax + 1.f
     };
 
     #ifdef debug
@@ -110,7 +109,7 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
         0L,/* will be set in loop */
         0L,/* will be set in loop */
         rasterRef.x, /* based on algo this is max */
-        0L,/* will be set in loop */
+        rasterRef.y,/* will be set in loop */
     };
 
     long alignedCharBoxYMax = alignedCharBox.yMax - 1;
@@ -123,6 +122,8 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
 
         vec2_t curPoint;
         curPoint.y = (float)curGlyphY;
+
+        toCheckArea.yMin = curGlyphY;
 
         for (long deltaScrX = alignedCharBox.xMin; deltaScrX < alignedCharBoxXMax/*alignedCharBox.xMax*/; ++deltaScrX)
         {
@@ -150,14 +151,6 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
 
                     vec2_t *start = &outline->points[curOutlinePt-1];
                     vec2_t *end = &outline->points[curOutlinePt];
-                    
-                    if ( vec2_equals(start, &curPoint)) 
-                    {
-                        #ifdef debug
-                        printf("reduce because edgepoint\n");
-                        #endif
-                        --intersectionSum;
-                    }
 
                     #ifdef debug
                         __rfont_bbox_print("(INTERSEC) AREA", &toCheckArea);
@@ -212,7 +205,7 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
             if ( intersectionSum != 0 ) 
             {
                 float renderX = options->curPos.x + (float)deltaScrX + xOffsetChar;//round_f(xOffsetChar);
-                float renderY = options->curPos.y + (float)deltaScrY + yOffsetChar;//round_f(yOffsetChar);
+                float renderY = options->curPos.y + (float)deltaScrY + yOffsetChar + 2;//round_f(yOffsetChar);
 
                 options->lastMax.x = ( options->lastMax.x < renderX ? renderX : options->lastMax.x );
                 options->lastMax.y = ( options->lastMax.y < renderY ? renderY : options->lastMax.y );
@@ -237,7 +230,7 @@ void rfont_raster_text(rf_ctx_t const * ctx, unsigned char const * const text, f
     options.curPos = (vec2_t){0.f, 0.f};
     char *curChar = (char *)text;
 
-    float hGap = 2.f;
+    float hGap = 3.f;
 
     while( *curChar != '\0' )
     {
