@@ -56,7 +56,7 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
 
     rf_glyph_container_t *glyphs = ctx->glyps;
     rf_glyph_t *glyph = glyphs->get(charcode);
-    
+
     rf_bbox_t* glyphBbox = &glyph->bbox;
 
     rf_bbox_t* globalBbox = &glyphs->globalBbox;
@@ -68,8 +68,15 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
         __rfont_bbox_print("(IN)global Bbox", globalBbox);
     #endif
 
+    if ( glyphBbox->xMax == 0 && glyphBbox->yMax == 0 && glyphBbox->xMin == 0 && glyphBbox->yMin == 0 )
+    {
+        options->lastMax.x += (charwidth * .25f);
+        return;
+    }
+
     /* TO CONVERTER */
     vec2_t lenGlyph = { ((float)glyphBbox->xMax - (float)glyphBbox->xMin), ((float)glyphBbox->yMax - (float)glyphBbox->yMin) };
+
     vec2_t lenGlobal = { ((float)globalBbox->xMax - (float)globalBbox->xMin), ((float)globalBbox->yMax - (float)globalBbox->yMin) };
     /* TO CONVERTER */
     float pixelRatio = ( charwidth / lenGlobal.x);
