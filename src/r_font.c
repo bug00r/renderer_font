@@ -45,6 +45,75 @@ static bool __r_font_must_check_for_intersection(vec2_t *p1, vec2_t *p2, rf_bbox
     return __r_font_vec2_inside_bbox(p1, bbox) || __r_font_vec2_inside_bbox(p2, bbox);
 }
 
+static int __r_font_compute_intersectionsum(rf_ctx_t const * ctx, rf_glyph_t *_glyph, rf_bbox_t *toCheckArea,
+                                            vec2_t *curPoint, vec2_t *rasterRef)
+{
+    rf_glyph_container_t *glyphs = ctx->glyps;
+    rf_glyph_t *glyph = _glyph;
+    
+    rf_outlines_t *outlines = &glyph->outlines[0];
+    rf_outlines_t *outline = &outlines[0];
+
+    int intersectionSum = 0;
+
+    do
+    {
+
+        for ( size_t curOutlinePt = 1; curOutlinePt < outline->cntPoints; ++curOutlinePt)
+        {
+
+            vec2_t *start = &outline->points[curOutlinePt-1];
+            vec2_t *end = &outline->points[curOutlinePt];
+
+            #ifdef debug
+                __rfont_bbox_print("(INTERSEC) AREA", toCheckArea);
+            #endif
+            //__rfont_bbox_print("(INTERSEC) AREA", &toCheckArea);
+            //intersects?
+            if ( __r_font_must_check_for_intersection(start, end, toCheckArea) )
+            {
+                
+                bool intersec = lineseg_intersect(curPoint, rasterRef, start, end);
+
+                #ifdef debug
+                printf("\tINSTERSECTION TEST (intersec: %i)\n", intersec);
+                #endif
+
+                if ( intersec )
+                {
+                    
+                    #ifdef debug
+                    printf("\t\tintersects with pos(negative is left) ");
+                    #endif                               
+
+                    /* computing side */
+                    vec3_t first = { start->x, start->y, 0.f };
+                    vec3_t middle = { curPoint->x, curPoint->y, 0.f };
+                    vec3_t last = { end->x, end->y, 0.f };
+
+                    float place = place_of_vec3(&first, &last, &middle);
+
+                    #ifdef debug
+                    printf("f l m pos:= %.2f/%.2f | %.2f/%.2f | %.2f/%.2f | %.2f\n",
+                            first.x, first.y, last.x, last.y, middle.x, middle.y, place);
+                    #endif     
+
+                    intersectionSum += ( place >= 0.f ? -1 : 1 ); 
+                    
+                    #ifdef debug
+                    printf("\t\tintersection sum: %i\n", intersectionSum);
+                    #endif
+
+    
+                }
+            }
+        }    
+
+    } while ( (++outline)->points != NULL );
+
+    return intersectionSum;
+}
+
 typedef struct {
     vec2_t curPos;
     vec2_t lastMax;
@@ -58,9 +127,8 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
     rf_glyph_t *glyph = glyphs->get(charcode);
 
     rf_bbox_t* glyphBbox = &glyph->bbox;
-
     rf_bbox_t* globalBbox = &glyphs->globalBbox;
-
+    
     __rf_options_t * options = _options; 
 
     #ifdef debug
@@ -74,33 +142,15 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
         return;
     }
 
-    /* TO CONVERTER */
-    vec2_t lenGlyph = { ((float)glyphBbox->xMax - (float)glyphBbox->xMin), ((float)glyphBbox->yMax - (float)glyphBbox->yMin) };
+    rf_glyph_meta_t meta;
+    rfont_get_meta(ctx, &meta, charcode, charwidth);
 
-    vec2_t lenGlobal = { ((float)globalBbox->xMax - (float)globalBbox->xMin), ((float)globalBbox->yMax - (float)globalBbox->yMin) };
-    /* TO CONVERTER */
-    float pixelRatio = ( charwidth / lenGlobal.x);
-    vec2_t globalPixel = { ceilf(charwidth) , ceilf(pixelRatio * lenGlobal.y)};
-
-    vec2_t glyphPixel = { ceilf(pixelRatio * lenGlyph.x), ceilf(pixelRatio * lenGlyph.y) };
- 
-
-    float xOffsetChar = ( glyphBbox->xMin != 0 ? (float)glyphBbox->xMin * pixelRatio : 0 );
-    float yOffsetChar = ( glyphBbox->yMin != 0 ? (float)glyphBbox->yMin * pixelRatio : 0 );
+    rf_bbox_t *alignedCharBox = &meta.alignedCharBox;
+    float xOffsetChar = meta.xOffsetChar;
+    float yOffsetChar = meta.yOffsetChar;
 
     #ifdef debug
-        printf("Offset (x/y): %.2f / %.2f\n", xOffsetChar, yOffsetChar);
-    #endif
-
-    rf_bbox_t alignedCharBox = {
-        /* xMin */-1,
-        /* yMin */-1,
-        /* xMax */glyphPixel.x,
-        /* yMax */glyphPixel.y,
-    };
-    
-    #ifdef debug
-        __rfont_bbox_print("\n(ALIGNED)char Bbox", &alignedCharBox);
+        __rfont_bbox_print("\n(ALIGNED)char Bbox", alignedCharBox);
     #endif
 
     vec2_t rasterRef = { 
@@ -119,22 +169,22 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
         rasterRef.y,/* will be set in loop */
     };
 
-    long alignedCharBoxYMax = alignedCharBox.yMax - 1;
-    long alignedCharBoxXMax = alignedCharBox.xMax - 1;
+    long alignedCharBoxYMax = alignedCharBox->yMax - 1;
+    long alignedCharBoxXMax = alignedCharBox->xMax - 1;
     
-    for (long deltaScrY = alignedCharBox.yMin; deltaScrY < alignedCharBoxYMax /*alignedCharBox.yMax*/; ++deltaScrY)
+    for (long deltaScrY = alignedCharBox->yMin; deltaScrY < alignedCharBoxYMax /*alignedCharBox.yMax*/; ++deltaScrY)
     {
         /* screenresult y */
-        float curGlyphY = interpolate_lin(deltaScrY + 1, alignedCharBox.yMin, glyphBbox->yMin, alignedCharBox.yMax, glyphBbox->yMax);
+        float curGlyphY = interpolate_lin(deltaScrY + 1, alignedCharBox->yMin, glyphBbox->yMin, alignedCharBox->yMax, glyphBbox->yMax);
 
         vec2_t curPoint;
         curPoint.y = (float)curGlyphY;
 
         toCheckArea.yMin = curGlyphY;
 
-        for (long deltaScrX = alignedCharBox.xMin; deltaScrX < alignedCharBoxXMax/*alignedCharBox.xMax*/; ++deltaScrX)
+        for (long deltaScrX = alignedCharBox->xMin; deltaScrX < alignedCharBoxXMax/*alignedCharBox.xMax*/; ++deltaScrX)
         {
-            float curGlyphX = interpolate_lin(deltaScrX + 1, alignedCharBox.xMin, glyphBbox->xMin, alignedCharBox.xMax, glyphBbox->xMax);
+            float curGlyphX = interpolate_lin(deltaScrX + 1, alignedCharBox->xMin, glyphBbox->xMin, alignedCharBox->xMax, glyphBbox->xMax);
             
             #ifdef debug
                 printf("x/y conv:= char: %ld / %ld glyph: %f / %f \n", deltaScrX, deltaScrY, curGlyphX, curGlyphY);
@@ -145,65 +195,7 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
 
             toCheckArea.xMin = curGlyphX;
             
-            int intersectionSum = 0;
-            
-            rf_outlines_t *outlines = &glyph->outlines[0];
-            rf_outlines_t *outline = &outlines[0];
-
-            do
-            {
-
-                for ( size_t curOutlinePt = 1; curOutlinePt < outline->cntPoints; ++curOutlinePt)
-                {
-
-                    vec2_t *start = &outline->points[curOutlinePt-1];
-                    vec2_t *end = &outline->points[curOutlinePt];
-
-                    #ifdef debug
-                        __rfont_bbox_print("(INTERSEC) AREA", &toCheckArea);
-                    #endif
-                    //__rfont_bbox_print("(INTERSEC) AREA", &toCheckArea);
-                    //intersects?
-                    if ( __r_font_must_check_for_intersection(start, end, &toCheckArea) )
-                    {
-                        
-                        bool intersec = lineseg_intersect(&curPoint, &rasterRef, start, end);
-
-                        #ifdef debug
-                        printf("\tINSTERSECTION TEST (intersec: %i)\n", intersec);
-                        #endif
-
-                        if ( intersec )
-                        {
-                            
-                            #ifdef debug
-                            printf("\t\tintersects with pos(negative is left) ");
-                            #endif                               
-
-                            /* computing side */
-                            vec3_t first = { start->x, start->y, 0.f };
-                            vec3_t middle = { curPoint.x, curPoint.y, 0.f };
-                            vec3_t last = { end->x, end->y, 0.f };
-
-                            float place = place_of_vec3(&first, &last, &middle);
-
-                            #ifdef debug
-                            printf("f l m pos:= %.2f/%.2f | %.2f/%.2f | %.2f/%.2f | %.2f\n",
-                                    first.x, first.y, last.x, last.y, middle.x, middle.y, place);
-                            #endif     
-
-                            intersectionSum += ( place >= 0.f ? -1 : 1 ); 
-                            
-                            #ifdef debug
-                            printf("\t\tintersection sum: %i\n", intersectionSum);
-                            #endif
-
-            
-                        }
-                    }
-                }    
-
-            } while ( (++outline)->points != NULL );
+            int intersectionSum = __r_font_compute_intersectionsum(ctx, glyph, &toCheckArea, &curPoint, &rasterRef);
 
             #ifdef debug
                 printf(" CHECK intersection sum: %i\n", intersectionSum);
@@ -247,4 +239,34 @@ void rfont_raster_text(rf_ctx_t const * ctx, unsigned char const * const text, f
 
         curChar++;
     }
+}
+
+void rfont_get_meta(rf_ctx_t const * ctx, rf_glyph_meta_t* _meta, unsigned long charcode, float charwidth)
+{
+    rf_glyph_container_t *glyphs = ctx->glyps;
+    rf_glyph_t *glyph = glyphs->get(charcode);
+
+    rf_bbox_t* glyphBbox = &glyph->bbox;
+
+    rf_bbox_t* globalBbox = &glyphs->globalBbox;
+
+    rf_glyph_meta_t* meta = _meta;
+
+    meta->lenGlyph = (vec2_t){ ((float)glyphBbox->xMax - (float)glyphBbox->xMin), ((float)glyphBbox->yMax - (float)glyphBbox->yMin) };
+    meta->lenGlobal = (vec2_t){ ((float)globalBbox->xMax - (float)globalBbox->xMin), ((float)globalBbox->yMax - (float)globalBbox->yMin) };
+
+    meta->pixelRatio = ( charwidth / meta->lenGlobal.x);
+
+    meta->glyphPixel = (vec2_t){ ceilf(meta->pixelRatio * meta->lenGlyph.x), ceilf(meta->pixelRatio * meta->lenGlyph.y) };
+ 
+
+    meta->xOffsetChar = ( glyphBbox->xMin != 0 ? (float)glyphBbox->xMin * meta->pixelRatio : 0 );
+    meta->yOffsetChar = ( glyphBbox->yMin != 0 ? (float)glyphBbox->yMin * meta->pixelRatio : 0 );
+
+    meta->alignedCharBox = (rf_bbox_t){
+        /* xMin */-1,
+        /* yMin */-1,
+        /* xMax */meta->glyphPixel.x,
+        /* yMax */meta->glyphPixel.y,
+    };
 }
