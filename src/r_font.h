@@ -67,5 +67,6 @@ void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, float charwidth,
 void rfont_raster_text(rf_ctx_t const * ctx, unsigned char const * const text, float charwidth, RASTER_FONT_FUNC rFunc, void *data);
 
 void rfont_get_meta(rf_ctx_t const * ctx, rf_glyph_meta_t* meta, unsigned long charcode, float charwidth);
+void rfont_get_meta_str(rf_ctx_t const * ctx, rf_glyph_meta_t* meta, unsigned char const * const text, float charwidth);
 
 #endif

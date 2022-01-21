@@ -128,7 +128,7 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
 
     rf_bbox_t* glyphBbox = &glyph->bbox;
     rf_bbox_t* globalBbox = &glyphs->globalBbox;
-    
+
     __rf_options_t * options = _options; 
 
     #ifdef debug
@@ -155,7 +155,7 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
 
     vec2_t rasterRef = { 
         globalBbox->xMax + 1.f, 
-        globalBbox->yMax + 1.f
+        globalBbox->yMin + ((globalBbox->yMax - globalBbox->yMin) * 0.5f)
     };
 
     #ifdef debug
@@ -269,4 +269,48 @@ void rfont_get_meta(rf_ctx_t const * ctx, rf_glyph_meta_t* _meta, unsigned long 
         /* xMax */meta->glyphPixel.x,
         /* yMax */meta->glyphPixel.y,
     };
+
+    if ( glyphBbox->xMax == 0 && glyphBbox->yMax == 0 && glyphBbox->xMin == 0 && glyphBbox->yMin == 0 )
+    {
+        meta->xOffsetChar += (charwidth * .25f);
+    }
+}
+
+void rfont_get_meta_str(rf_ctx_t const * ctx, rf_glyph_meta_t* _meta, unsigned char const * const text, float charwidth)
+{
+    __rf_options_t options;
+    rf_glyph_meta_t* globalMeta = _meta;
+    rf_glyph_meta_t localMeta;
+    options.curPos = (vec2_t){0.f, 0.f};
+    char *curChar = (char *)text;
+
+    int hGap = 3;
+
+    globalMeta->yOffsetChar = 0.f;
+    //not in use globalMeta->xOffsetChar
+    globalMeta->alignedCharBox = (rf_bbox_t){
+        /* xMin */-1,
+        /* yMin */-1,
+        /* xMax */0,
+        /* yMax */0,
+    };
+
+    while( *curChar != '\0' )
+    {
+        rfont_get_meta(ctx, &localMeta, *curChar,charwidth);
+
+        long width = localMeta.alignedCharBox.xMax - localMeta.alignedCharBox.xMin + floorf(fabsf(localMeta.xOffsetChar));
+	    long height = localMeta.alignedCharBox.yMax - localMeta.alignedCharBox.yMin + ceilf(fabsf(localMeta.yOffsetChar)); 
+        
+        globalMeta->alignedCharBox.xMax += width;
+        globalMeta->alignedCharBox.xMax += hGap;
+
+        globalMeta->alignedCharBox.yMax = ( globalMeta->alignedCharBox.yMax < height ? height : globalMeta->alignedCharBox.yMax );
+
+        globalMeta->yOffsetChar = ( globalMeta->yOffsetChar > localMeta.yOffsetChar ? localMeta.yOffsetChar : globalMeta->yOffsetChar );
+
+        curChar++;
+    }
+
+    globalMeta->alignedCharBox.xMax -= hGap;
 }
