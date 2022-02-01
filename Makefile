@@ -53,56 +53,48 @@ CFLAGS+= -std=c11 -Wpedantic -pedantic-errors -Wall -Wextra $(debug)
 #-ggdb
 #-pg for profiling 
 
-LIBDIR?=/c/dev/lib$(BIT_SUFFIX)
-LIBSDIR?=-L$(LIBDIR)
-INCLUDE?=-I/c/dev/include/freetype2 -I/c/dev/include -I/usr/include -I/usr/include/freetype2 -I./src
+LIBSDIR?=-L/c/dev/lib$(BIT_SUFFIX) -L./$(BUILDDIR)
+INCLUDE?=-I/c/dev/include -I/usr/include -I./src
 
-INCLUDEDIR=$(INCLUDE)
-
-LIBSDIR+=-L./$(BUILDDIR)
-
-_LIB_SRC_FILES=r_font
-LIBSRC=$(patsubst %,src/%,$(patsubst %,%.c,$(_LIB_SRC_FILES)))
-LIBHEADER=$(patsubst %,src/%,$(patsubst %,%.h,$(_LIB_SRC_FILES)))
-OBJS=r_font.o
-LIB_NAME=r_font
-LIBS= $(LIB_NAME) freetype dl_list utilsmath vec mat
+NAME=r_font
+OBJS=$(NAME).o
+LIBS=$(NAME) dl_list utilsmath vec mat
 
 TESTLIB=$(patsubst %,-l%,$(LIBS))
 _TEST_SRC_FILES=test_r_font font_provider_default
 TESTSRC=$(patsubst %,src/%,$(patsubst %,%.c,$(_TEST_SRC_FILES)))
-TESTBIN=test_r_font.exe
+TESTBIN=$(BUILDPATH)test_$(NAME).exe
+LIBNAME=lib$(NAME).a
+LIB=$(BUILDPATH)$(LIBNAME)
 
-LIB=lib$(LIB_NAME).a
+all: mkbuilddir $(LIB) $(TESTBIN)
 
-all: mkbuilddir $(BUILDPATH)$(LIB) $(BUILDPATH)$(TESTBIN)
+$(OBJS):
+	$(CC) $(CFLAGS) -c src/$(@F:.o=.c) -o $@ $(INCLUDE)
 
-$(BUILDPATH)$(OBJS):
-	$(CC) $(CFLAGS) -c $(LIBSRC) $(INCLUDEDIR) -o $(BUILDPATH)$(OBJS)
+$(LIB): $(OBJS)
+	$(AR) $(ARFLAGS) $@ $^
 
-$(BUILDPATH)$(LIB): $(BUILDPATH)$(OBJS)
-	$(AR) $(ARFLAGS) $(BUILDPATH)$(LIB) $(BUILDPATH)$(OBJS)
+$(TESTBIN): $(LIB) src/font_provider_default.h
+	$(CC) $(CFLAGS) $(TESTSRC) -o $@ $(LIBSDIR) $(TESTLIB) $(INCLUDE) $(debug)
 
 .PHONY: clean mkbuilddir test
 
-test: $(BUILDPATH)$(TESTBIN)
-	./$(BUILDPATH)$(TESTBIN)
+test: $(TESTBIN)
+	./$(TESTBIN)
 
 install_folder:
 	mkdir -p $(INSTALL_ROOT)include
 	mkdir -p $(INSTALL_ROOT)lib$(BIT_SUFFIX)
 
 install_header: install_folder
-	cp ./src/r_font.h $(INSTALL_ROOT)include/r_font.h
+	cp ./src$(PATHSEP)$(NAME).h $(INSTALL_ROOT)include$(PATHSEP)$(NAME).h
 
 install: install_header
-	cp $(BUILDPATH)$(LIB) $(INSTALL_ROOT)lib$(BIT_SUFFIX)/$(LIB)
+	cp $(LIB) $(INSTALL_ROOT)lib$(BIT_SUFFIX)$(PATHSEP)$(LIBNAME)
 
 mkbuilddir:
 	mkdir -p $(BUILDDIR)
 
 clean:
 	-rm -dr $(BUILDROOT)
-
-$(BUILDPATH)$(TESTBIN): $(TESTSRC) $(LIBSRC) $(LIBHEADER)
-	$(CC) $(CFLAGS) $(TESTSRC) $(LIBSDIR) $(TESTLIB) $(INCLUDE) $(debug) -o $(BUILDPATH)$(TESTBIN)

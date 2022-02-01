@@ -6,36 +6,7 @@
 #include <assert.h>
 
 #include "font_provider_default.h"
-/*
 
-typedef struct {
-    vec2_t *points;
-    size_t cntPoints;
-} rf_outlines_t;
-
-typedef struct {
-    rf_bbox_t bbox;
-    rf_outlines_t *outlines;
-    size_t cntOutlines;
-} rf_glyph_t;
-
-// a Collection of all provided glyphs 
-typedef struct {
-    void *internals;    // Internals will be structured by Provider
-    rf_glyph_t* (*get)( unsigned long charcode);    
-} rf_glyph_container_t;
-
-
-void rfont_init(rf_ctx_t *ctx, rf_provider_t *provider);
-void rfont_cleanup(rf_ctx_t *ctx);
-void rfont_raster(rf_ctx_t const * ctx, vec2_t* charPos, unsigned long charcode, rf_bbox_t* charBbox, RASTER_FONT_FUNC rFunc, void *data);
-
-typedef struct {
-    rf_glyph_container_t*   (*get)  (void);         //constructor method for rf_data_t object
-    void                    (*free) (rf_glyph_container_t**);  // destructor method for rf_data_t object
-    } rf_provider_t;
-
-*/
 typedef struct {
     long *buffer;
     long width;
@@ -48,12 +19,9 @@ static void __rf_test_render_func(float const * const x, float const * const y, 
     __rf_test_buffer_ctx_t *ctx = data;
     vec2_t *charPos = &ctx->charPos;
 
-    //printf("raw r:= x: %ld y: %ld\n", *x, *y);
-
     long used_x = charPos->x + *x;
     long used_y = ctx->height - *y - charPos->y;
 
-    //printf("used=> r:= x: %ld y: %ld\n", used_x, used_y);
     if ( (used_x < 0 ) || ( used_y < 0) || ( used_y >= ctx->height) || ( used_x >= ctx->width) ) return;
     
     ctx->buffer[(used_y * ctx->width) + used_x] = 1;
@@ -76,8 +44,6 @@ static rf_outlines_t glyph1_outlines[] = {
     /* Senitinel */
     { NULL, 0 },
 };
-
-//static rf_glyph_t __rf_test_glyph = { bbox_1, &glyph1_outlines[0]};
 
 /* GLYPH 2 TEST */
 
@@ -354,15 +320,6 @@ rf_glyph_t* __rf_test_glyph_get( unsigned long charcode )
     
 }
 
-/*
-static const rf_bbox_t bbox_1 = {0l, 0l, 100l, 100l};
-static const rf_bbox_t bbox_2 = {0l, 0l, 100l, 100l};
-static const rf_bbox_t bbox_3 = {131l, 0l, 298l, 1088l};
-static const rf_bbox_t bbox_4 = {34, 0, 905, 1088};
-static const rf_bbox_t bbox_5 = {92, -320, 456, 1088};
-static const rf_bbox_t bbox_6 = {86, -320, 1507, 1088};
-*/
-
 static rf_glyph_container_t __rf_test_glc = {NULL, __rf_test_glyph_get, {0, -320, 1507, 1088}};
 
 rf_glyph_container_t* __rf_test_glcon_get() 
@@ -372,7 +329,7 @@ rf_glyph_container_t* __rf_test_glcon_get()
 
 static void __rf_test_glcon_free(rf_glyph_container_t** container) 
 {
-
+    (void)(container);
 }
 
 static void __rf_test_clearBuffer(__rf_test_buffer_ctx_t *_buffCtx)
@@ -384,6 +341,7 @@ static void __rf_test_clearBuffer(__rf_test_buffer_ctx_t *_buffCtx)
     }
 }
 
+#ifdef debug
 static void __rf_test_printBuffer(__rf_test_buffer_ctx_t *_buffCtx)
 {
     __rf_test_buffer_ctx_t * buffCtx = _buffCtx;
@@ -395,6 +353,7 @@ static void __rf_test_printBuffer(__rf_test_buffer_ctx_t *_buffCtx)
         printf("%ld ", buffCtx->buffer[i]);
     }
 }
+#endif
 
 static int __rf_test_data = 42;
 void __rf_test_init_fn(void *_provider, void *init_data)
@@ -436,8 +395,10 @@ static void test_r_font_raster_dummy()
     __rf_test_clearBuffer(&buffCtx);
     rfont_raster(&rf_ctx, 5, charwidth, __rf_test_render_func, &buffCtx);
 
+    #ifdef debug
     __rf_test_printBuffer(&buffCtx);
-
+    #endif
+    
     DEBUG_LOG("<<<\n");
 }
 
@@ -465,8 +426,10 @@ static void test_r_font_raster_default_provider()
     buffCtx.charPos = (vec2_t){22.f, 7.f};
     rfont_raster(&rf_ctx, 252, charwidth, __rf_test_render_func, &buffCtx);
     
-    printf("\n\n");
+    #ifdef debug
+    DEBUG_LOG("\n\n");
     __rf_test_printBuffer(&buffCtx);
+    #endif
 
     __rf_test_clearBuffer(&buffCtx);
     buffCtx.charPos = (vec2_t){0.f, 9.f};
@@ -475,17 +438,20 @@ static void test_r_font_raster_default_provider()
     buffCtx.charPos = (vec2_t){22.f, 9.f};
     rfont_raster(&rf_ctx, 103, charwidth, __rf_test_render_func, &buffCtx);
     
-    printf("\n\n");
+    #ifdef debug
+    DEBUG_LOG("\n\n");
     __rf_test_printBuffer(&buffCtx);
+    #endif
 
     __rf_test_clearBuffer(&buffCtx);
     buffCtx.charPos = (vec2_t){5.f, 10.f};
     rfont_raster(&rf_ctx, 64, charwidth, __rf_test_render_func, &buffCtx);
 
-    printf("\n\n");
+    #ifdef debug
+    DEBUG_LOG("\n\n");
     __rf_test_printBuffer(&buffCtx);
-    printf("\n");
-
+    DEBUG_LOG("\n");
+    #endif
     DEBUG_LOG("<<<\n");
 }
 
@@ -510,8 +476,10 @@ static void test_r_text_raster_default_provider()
     __rf_test_clearBuffer(&buffCtx);
     rfont_raster_text(&rf_ctx, (unsigned char const * const)"yg]|", charwidth, __rf_test_render_func, &buffCtx);
 
-    printf("\n");
+    #ifdef debug
+    DEBUG_LOG("\n");
     __rf_test_printBuffer(&buffCtx);
+    #endif
 
     DEBUG_LOG("<<<\n");
 }

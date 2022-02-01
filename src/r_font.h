@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 #include "dl_list.h"
-#include "utils_math.h"
+#include "utilsmath.h"
 
 typedef struct {
     long xMin;
