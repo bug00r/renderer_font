@@ -155,7 +155,7 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
 
     vec2_t rasterRef = { 
         globalBbox->xMax + 1.f, 
-        globalBbox->yMin + ((globalBbox->yMax - globalBbox->yMin) * 0.5f)
+        globalBbox->yMax + ((globalBbox->yMax - globalBbox->yMin) * 0.5f)
     };
 
     #ifdef debug
@@ -231,20 +231,24 @@ static unsigned char __r_font_truncate(char *curChar, unsigned int cntMSB)
     return truncated;
 }
 
-static unsigned long __r_font_compute_charcode(char *curChar)
+static unsigned long __r_font_compute_charcode(char *curChar, unsigned int *usedBytes)
 {
     unsigned long result = *curChar;
     unsigned char usedChar = *curChar;
 
+    *usedBytes = 1;
+
     if ( (usedChar >> 5) == 6 )
     {   
         result = 0 | __r_font_truncate(curChar++,3) << 6 | __r_font_truncate(curChar, 2);
+        *usedBytes = 2;
     } 
     else if ( (usedChar>> 4) == 14 ) 
     {
         result = 0 | __r_font_truncate(curChar++,4) << 12 | 
                      __r_font_truncate(curChar++,2) << 6  | 
                      __r_font_truncate(curChar, 2);
+        *usedBytes = 3;
     }
     else if ( (usedChar >> 3) == 30 ) 
     {
@@ -252,6 +256,7 @@ static unsigned long __r_font_compute_charcode(char *curChar)
                      __r_font_truncate(curChar++,2) << 12 | 
                      __r_font_truncate(curChar++,2) << 6  | 
                      __r_font_truncate(curChar, 2);
+        *usedBytes = 4;
     }
 
     return result;
@@ -267,12 +272,13 @@ void rfont_raster_text(rf_ctx_t const * ctx, unsigned char const * const text, f
 
     while( *curChar != '\0' )
     {
-        unsigned long charcode = __r_font_compute_charcode(curChar);
+        unsigned int usedBytes = 0;
+        unsigned long charcode = __r_font_compute_charcode(curChar, &usedBytes);
         __r_font_raster_raw(&options, ctx, charcode, charwidth, rFunc, data);
 
         options.curPos.x = options.lastMax.x + hGap;
-
-        curChar++;
+        //printf("usedBytes: %i\n", usedBytes);
+        curChar += usedBytes;
     }
 }
 
