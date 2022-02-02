@@ -223,6 +223,40 @@ void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, float charwidth,
     __r_font_raster_raw(&options, ctx, charcode, charwidth, rFunc, data);
 }
 
+static unsigned char __r_font_truncate(char *curChar, unsigned int cntMSB)
+{   
+    unsigned char truncated = *curChar;
+    truncated <<= cntMSB;
+    truncated >>= cntMSB;
+    return truncated;
+}
+
+static unsigned long __r_font_compute_charcode(char *curChar)
+{
+    unsigned long result = *curChar;
+    unsigned char usedChar = *curChar;
+
+    if ( (usedChar >> 5) == 6 )
+    {   
+        result = 0 | __r_font_truncate(curChar++,3) << 6 | __r_font_truncate(curChar, 2);
+    } 
+    else if ( (usedChar>> 4) == 14 ) 
+    {
+        result = 0 | __r_font_truncate(curChar++,4) << 12 | 
+                     __r_font_truncate(curChar++,2) << 6  | 
+                     __r_font_truncate(curChar, 2);
+    }
+    else if ( (usedChar >> 3) == 30 ) 
+    {
+        result = 0 | __r_font_truncate(curChar++,4) << 18 | 
+                     __r_font_truncate(curChar++,2) << 12 | 
+                     __r_font_truncate(curChar++,2) << 6  | 
+                     __r_font_truncate(curChar, 2);
+    }
+
+    return result;
+}
+
 void rfont_raster_text(rf_ctx_t const * ctx, unsigned char const * const text, float charwidth, RASTER_FONT_FUNC rFunc, void *data)
 {
     __rf_options_t options;
@@ -233,7 +267,8 @@ void rfont_raster_text(rf_ctx_t const * ctx, unsigned char const * const text, f
 
     while( *curChar != '\0' )
     {
-        __r_font_raster_raw(&options, ctx, *curChar, charwidth, rFunc, data);
+        unsigned long charcode = __r_font_compute_charcode(curChar);
+        __r_font_raster_raw(&options, ctx, charcode, charwidth, rFunc, data);
 
         options.curPos.x = options.lastMax.x + hGap;
 

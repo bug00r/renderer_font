@@ -53,11 +53,11 @@ CFLAGS+= -std=c11 -Wpedantic -pedantic-errors -Wall -Wextra $(debug)
 #-ggdb
 #-pg for profiling 
 
-LIBSDIR?=-L/c/dev/lib$(BIT_SUFFIX) -L./$(BUILDDIR)
+LIBSDIR?=-L./$(BUILDDIR) -L/c/dev/lib$(BIT_SUFFIX) 
 INCLUDE?=-I/c/dev/include -I/usr/include -I./src
 
 NAME=r_font
-OBJS=$(NAME).o
+OBJS=$(BUILDPATH)$(NAME).o
 LIBS=$(NAME) dl_list utilsmath vec mat
 
 TESTLIB=$(patsubst %,-l%,$(LIBS))
@@ -67,7 +67,7 @@ TESTBIN=$(BUILDPATH)test_$(NAME).exe
 LIBNAME=lib$(NAME).a
 LIB=$(BUILDPATH)$(LIBNAME)
 
-all: mkbuilddir $(LIB) $(TESTBIN)
+all: mkbuilddir $(LIB)
 
 $(OBJS):
 	$(CC) $(CFLAGS) -c src/$(@F:.o=.c) -o $@ $(INCLUDE)
@@ -75,8 +75,8 @@ $(OBJS):
 $(LIB): $(OBJS)
 	$(AR) $(ARFLAGS) $@ $^
 
-$(TESTBIN): $(LIB) src/font_provider_default.h
-	$(CC) $(CFLAGS) $(TESTSRC) -o $@ $(LIBSDIR) $(TESTLIB) $(INCLUDE) $(debug)
+$(TESTBIN): $(LIB) $(TESTSRC) src/font_provider_default.h
+	$(CC) $(CFLAGS) $(TESTSRC) -o $@ $(LIBSDIR) $(TESTLIB) $(INCLUDE)
 
 .PHONY: clean mkbuilddir test
 

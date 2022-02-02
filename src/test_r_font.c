@@ -398,7 +398,7 @@ static void test_r_font_raster_dummy()
     #ifdef debug
     __rf_test_printBuffer(&buffCtx);
     #endif
-    
+
     DEBUG_LOG("<<<\n");
 }
 
@@ -474,7 +474,15 @@ static void test_r_text_raster_default_provider()
     __rf_test_buffer_ctx_t buffCtx = {buffer, width, height, (vec2_t){3.f, 10.f}};   
 
     __rf_test_clearBuffer(&buffCtx);
-    rfont_raster_text(&rf_ctx, (unsigned char const * const)"yg]|", charwidth, __rf_test_render_func, &buffCtx);
+    rfont_raster_text(&rf_ctx, (unsigned char const * const)"yg]|ßüöä", charwidth, __rf_test_render_func, &buffCtx);
+
+    #ifdef debug
+    DEBUG_LOG("\n");
+    __rf_test_printBuffer(&buffCtx);
+    #endif
+
+    __rf_test_clearBuffer(&buffCtx);
+    rfont_raster_text(&rf_ctx, (unsigned char const * const)"§ÜÖÄ€", charwidth, __rf_test_render_func, &buffCtx);
 
     #ifdef debug
     DEBUG_LOG("\n");

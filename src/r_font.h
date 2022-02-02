@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 
+#include "defs.h"
 #include "dl_list.h"
 #include "utilsmath.h"
 
