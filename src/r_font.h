@@ -14,16 +14,10 @@ typedef struct {
     long yMax;
 } rf_bbox_t;
 
-/*typedef struct {
-    vec2_t *points;
-    size_t cntPoints;
-} rf_outlines_t;
-*/
 typedef struct {
     rf_bbox_t bbox;
     size_t cntPoints;
     vec2_t *points;
-    //rf_outlines_t *outlines;
 } rf_glyph_t;
 
 /* a Collection of all provided glyphs */

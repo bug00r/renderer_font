@@ -45,18 +45,15 @@ static bool __r_font_must_check_for_intersection(vec2_t *p1, vec2_t *p2, rf_bbox
     return __r_font_vec2_inside_bbox(p1, bbox) || __r_font_vec2_inside_bbox(p2, bbox);
 }
 
-static int __r_font_compute_intersectionsum(rf_ctx_t const * ctx, rf_glyph_t *_glyph, rf_bbox_t *toCheckArea,
+static int __r_font_compute_intersectionsum(rf_glyph_t *_glyph, rf_bbox_t *toCheckArea,
                                             vec2_t *curPoint, vec2_t *rasterRef)
 {
-    rf_glyph_container_t *glyphs = ctx->glyps;
     rf_glyph_t *glyph = _glyph;
-    
-    //rf_outlines_t *outlines = &glyph->outlines[0];
-    //rf_outlines_t *outline = &outlines[0];
 
     vec2_t *outlinePts = glyph->points;
     size_t cntPoints = glyph->cntPoints;
     vec2_t *outlineFirst = NULL;
+
     int intersectionSum = 0;
 
     for ( size_t curOutlinePt = 1; curOutlinePt < cntPoints; ++curOutlinePt)
@@ -76,7 +73,6 @@ static int __r_font_compute_intersectionsum(rf_ctx_t const * ctx, rf_glyph_t *_g
         #ifdef debug
             __rfont_bbox_print("(INTERSEC) AREA", toCheckArea);
         #endif
-        //__rfont_bbox_print("(INTERSEC) AREA", &toCheckArea);
         //intersects?
         if ( __r_font_must_check_for_intersection(start, end, toCheckArea) )
         {
@@ -201,7 +197,7 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
 
             toCheckArea.xMin = curGlyphX;
             
-            int intersectionSum = __r_font_compute_intersectionsum(ctx, glyph, &toCheckArea, &curPoint, &rasterRef);
+            int intersectionSum = __r_font_compute_intersectionsum( glyph, &toCheckArea, &curPoint, &rasterRef);
 
             #ifdef debug
                 printf(" CHECK intersection sum: %i\n", intersectionSum);
@@ -240,6 +236,9 @@ static unsigned char __r_font_truncate(char *curChar, unsigned int cntMSB)
 static unsigned long __r_font_compute_charcode(char *curChar, unsigned int *usedBytes)
 {
     unsigned long result = *curChar;
+
+    if (curChar == NULL) return result;
+
     unsigned char usedChar = *curChar;
 
     *usedBytes = 1;
@@ -325,10 +324,9 @@ void rfont_get_meta(rf_ctx_t const * ctx, rf_glyph_meta_t* _meta, unsigned long 
 
 void rfont_get_meta_str(rf_ctx_t const * ctx, rf_glyph_meta_t* _meta, unsigned char const * const text, float charwidth)
 {
-    __rf_options_t options;
     rf_glyph_meta_t* globalMeta = _meta;
     rf_glyph_meta_t localMeta;
-    options.curPos = (vec2_t){0.f, 0.f};
+
     char *curChar = (char *)text;
 
     int hGap = 3;
