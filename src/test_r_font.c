@@ -46,7 +46,7 @@ static rf_outlines_t glyph1_outlines[] = {
 */
 
 //oPts[charcode in hex]
-static vec2_t oPts1[10] = {
+static vec2_t oPts1[] = {
     {0.f, 0.f}, {0.f, 100.f}, {100.f, 100.f}, {100.f, 0.f}, {0.f, 0.f},{10.f, 10.f}, {90.f, 10.f}, {90.f, 90.f}, {10.f, 90.f}, {10.f, 10.f} 
 };
 
@@ -78,7 +78,7 @@ static rf_outlines_t glyph2_outlines[] = {
 */
 
 //oPts[charcode in hex]
-static vec2_t oPts2[12] = {
+static vec2_t oPts2[] = {
     {298.f, 842.f}, {260.f, 256.f}, {172.f, 256.f}, {131.f, 842.f}, 
     {131.f, 1088.f}, {298.f, 1088.f}, {298.f, 842.f}, {290.f, 0.f}, 
     {137.f, 0.f}, {137.f, 128.f}, {290.f, 128.f}, {290.f, 0.f} 
@@ -88,7 +88,7 @@ static rf_glyph_t __rf_test_glyph_exclamation_mark = {{131l, 0l, 298l, 1088l}, 1
 
 /* the E Glyph */
 
-static vec2_t oPts3[13] = {
+static vec2_t oPts3[] = {
     {943.f, 0.f}, 
     {122.f, 0.f}, 
     {122.f, 1088.f}, 
@@ -107,7 +107,7 @@ static vec2_t oPts3[13] = {
 static rf_glyph_t __rf_test_glyph_upper_e = {{34, 0, 905, 1088}, 13, &oPts3[0]};
 
 /* glyph ( */
-static vec2_t oPts4[24] = {
+static vec2_t oPts4[] = {
     {456.f, -320.f},
     {359.f, -320.f},
     {282.f, -213.f},
@@ -137,7 +137,7 @@ static vec2_t oPts4[24] = {
 static rf_glyph_t __rf_test_glyph_left_parenthesis_ = {{92, -320, 456, 1088}, 24, &oPts4[0]};
 
 /* Glyph @ */
-static vec2_t oPts5[128] = {
+static vec2_t oPts5[] = {
     {1507.f,     0.f},
     {1443.f,   -90.f},
     {1358.f,  -168.f},
@@ -389,7 +389,7 @@ static void test_r_font_raster_dummy()
     DEBUG_LOG("<<<\n");
 }
 
-/*static void test_r_font_raster_default_provider() 
+static void test_r_font_raster_default_provider() 
 {
     DEBUG_LOG(">>>\n");
 
@@ -478,7 +478,7 @@ static void test_r_text_raster_default_provider()
 
     DEBUG_LOG("<<<\n");
 }
-*/
+
 int main(int argc, char* argv[])
 {
     /* unused */
@@ -489,9 +489,9 @@ int main(int argc, char* argv[])
 
     test_r_font_raster_dummy();
 
-    //test_r_font_raster_default_provider();
+    test_r_font_raster_default_provider();
 
-    //test_r_text_raster_default_provider();
+    test_r_text_raster_default_provider();
  
     DEBUG_LOG("<< renderer font tests:\n");
 	return 0;
