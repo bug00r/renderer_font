@@ -51,65 +51,71 @@ static int __r_font_compute_intersectionsum(rf_ctx_t const * ctx, rf_glyph_t *_g
     rf_glyph_container_t *glyphs = ctx->glyps;
     rf_glyph_t *glyph = _glyph;
     
-    rf_outlines_t *outlines = &glyph->outlines[0];
-    rf_outlines_t *outline = &outlines[0];
+    //rf_outlines_t *outlines = &glyph->outlines[0];
+    //rf_outlines_t *outline = &outlines[0];
 
+    vec2_t *outlinePts = glyph->points;
+    size_t cntPoints = glyph->cntPoints;
+    vec2_t *outlineFirst = NULL;
     int intersectionSum = 0;
 
-    do
+    for ( size_t curOutlinePt = 1; curOutlinePt < cntPoints; ++curOutlinePt)
     {
+        vec2_t *start = &outlinePts[curOutlinePt-1];
+        vec2_t *end = &outlinePts[curOutlinePt];
 
-        for ( size_t curOutlinePt = 1; curOutlinePt < outline->cntPoints; ++curOutlinePt)
+        if ( outlineFirst == NULL )
         {
+            outlineFirst = start;
+        } else if (vec2_equals(outlineFirst, start))
+        {
+            outlineFirst = NULL;
+            continue;
+        }
 
-            vec2_t *start = &outline->points[curOutlinePt-1];
-            vec2_t *end = &outline->points[curOutlinePt];
+        #ifdef debug
+            __rfont_bbox_print("(INTERSEC) AREA", toCheckArea);
+        #endif
+        //__rfont_bbox_print("(INTERSEC) AREA", &toCheckArea);
+        //intersects?
+        if ( __r_font_must_check_for_intersection(start, end, toCheckArea) )
+        {
+            
+            bool intersec = lineseg_intersect(curPoint, rasterRef, start, end);
 
             #ifdef debug
-                __rfont_bbox_print("(INTERSEC) AREA", toCheckArea);
+            printf("\tINSTERSECTION TEST (intersec: %i)\n", intersec);
             #endif
-            //__rfont_bbox_print("(INTERSEC) AREA", &toCheckArea);
-            //intersects?
-            if ( __r_font_must_check_for_intersection(start, end, toCheckArea) )
+
+            if ( intersec )
             {
                 
-                bool intersec = lineseg_intersect(curPoint, rasterRef, start, end);
+                #ifdef debug
+                printf("\t\tintersects with pos(negative is left) ");
+                #endif                               
+
+                /* computing side */
+                vec3_t first = { start->x, start->y, 0.f };
+                vec3_t middle = { curPoint->x, curPoint->y, 0.f };
+                vec3_t last = { end->x, end->y, 0.f };
+
+                float place = place_of_vec3(&first, &last, &middle);
 
                 #ifdef debug
-                printf("\tINSTERSECTION TEST (intersec: %i)\n", intersec);
+                printf("f l m pos:= %.2f/%.2f | %.2f/%.2f | %.2f/%.2f | %.2f\n",
+                        first.x, first.y, last.x, last.y, middle.x, middle.y, place);
+                #endif     
+
+                intersectionSum += ( place >= 0.f ? -1 : 1 ); 
+                
+                #ifdef debug
+                printf("\t\tintersection sum: %i\n", intersectionSum);
                 #endif
 
-                if ( intersec )
-                {
-                    
-                    #ifdef debug
-                    printf("\t\tintersects with pos(negative is left) ");
-                    #endif                               
 
-                    /* computing side */
-                    vec3_t first = { start->x, start->y, 0.f };
-                    vec3_t middle = { curPoint->x, curPoint->y, 0.f };
-                    vec3_t last = { end->x, end->y, 0.f };
-
-                    float place = place_of_vec3(&first, &last, &middle);
-
-                    #ifdef debug
-                    printf("f l m pos:= %.2f/%.2f | %.2f/%.2f | %.2f/%.2f | %.2f\n",
-                            first.x, first.y, last.x, last.y, middle.x, middle.y, place);
-                    #endif     
-
-                    intersectionSum += ( place >= 0.f ? -1 : 1 ); 
-                    
-                    #ifdef debug
-                    printf("\t\tintersection sum: %i\n", intersectionSum);
-                    #endif
-
-    
-                }
             }
-        }    
-
-    } while ( (++outline)->points != NULL );
+        }
+    }    
 
     return intersectionSum;
 }

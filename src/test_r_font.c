@@ -28,7 +28,7 @@ static void __rf_test_render_func(float const * const x, float const * const y, 
 }
 
 /* GLYPH 1 TEST */
-static const rf_bbox_t bbox_1 = {0l, 0l, 100l, 100l};
+/*static const rf_bbox_t bbox_1 = {0l, 0l, 100l, 100l};
 static const size_t cntOutlinePts1_1 = 5;
 static const size_t cntOutlinePts1_2 = 5;
 static vec2_t outlinePts1_1[5] = {
@@ -41,13 +41,20 @@ static vec2_t outlinePts1_2[5] = {
 static rf_outlines_t glyph1_outlines[] = { 
     { &outlinePts1_1[0], cntOutlinePts1_1},  
     { &outlinePts1_2[0], cntOutlinePts1_2},
-    /* Senitinel */
     { NULL, 0 },
 };
+*/
+
+//oPts[charcode in hex]
+static vec2_t oPts1[10] = {
+    {0.f, 0.f}, {0.f, 100.f}, {100.f, 100.f}, {100.f, 0.f}, {0.f, 0.f},{10.f, 10.f}, {90.f, 10.f}, {90.f, 90.f}, {10.f, 90.f}, {10.f, 10.f} 
+};
+
+static rf_glyph_t __rf_test_glyph = {{0l, 0l, 100l, 100l}, 10, &oPts1[0]};
 
 /* GLYPH 2 TEST */
 
-static const rf_bbox_t bbox_2 = {0l, 0l, 100l, 100l};
+/*static const rf_bbox_t bbox_2 = {0l, 0l, 100l, 100l};
 static const size_t cntOutlinePts2_1 = 5;
 static const size_t cntOutlinePts2_2 = 5;
 static const size_t cntOutlinePts2_3 = 5;
@@ -65,36 +72,23 @@ static rf_outlines_t glyph2_outlines[] = {
     { &outlinePts2_1[0], cntOutlinePts2_1},  
     { &outlinePts2_2[0], cntOutlinePts2_2},
     { &outlinePts2_3[0], cntOutlinePts2_3},
-    /* Senitinel */
+   
     { NULL, 0 },
 };
+*/
 
-/* the ! Glyph */
-static const rf_bbox_t bbox_3 = {131l, 0l, 298l, 1088l};
-static const size_t cntOutlinePts3_1 = 7;
-static const size_t cntOutlinePts3_2 = 5;
-
-static vec2_t outlinePts3_1[7] = {
+//oPts[charcode in hex]
+static vec2_t oPts2[12] = {
     {298.f, 842.f}, {260.f, 256.f}, {172.f, 256.f}, {131.f, 842.f}, 
-    {131.f, 1088.f}, {298.f, 1088.f}, {298.f, 842.f}
+    {131.f, 1088.f}, {298.f, 1088.f}, {298.f, 842.f}, {290.f, 0.f}, 
+    {137.f, 0.f}, {137.f, 128.f}, {290.f, 128.f}, {290.f, 0.f} 
 };
 
-static vec2_t outlinePts3_2[5] = {
-    {290.f, 0.f}, {137.f, 0.f}, {137.f, 128.f}, {290.f, 128.f}, {290.f, 0.f} 
-};
-
-static rf_outlines_t glyph3_outlines[] = { 
-    { &outlinePts3_1[0], cntOutlinePts3_1},  
-    { &outlinePts3_2[0], cntOutlinePts3_2},
-    /* Senitinel */
-    { NULL, 0 },
-};
+static rf_glyph_t __rf_test_glyph_exclamation_mark = {{131l, 0l, 298l, 1088l}, 12, &oPts2[0]};
 
 /* the E Glyph */
-static const rf_bbox_t bbox_4 = {34, 0, 905, 1088};
-static const size_t cntOutlinePts4_1 = 13;
 
-static vec2_t outlinePts4_1[13] = {
+static vec2_t oPts3[13] = {
     {943.f, 0.f}, 
     {122.f, 0.f}, 
     {122.f, 1088.f}, 
@@ -110,18 +104,10 @@ static vec2_t outlinePts4_1[13] = {
     {943.f, 0.f}
 };
 
-static rf_outlines_t glyph4_outlines[] = { 
-    { &outlinePts4_1[0], cntOutlinePts4_1},
-    /* Senitinel */
-    { NULL, 0 },
-};
+static rf_glyph_t __rf_test_glyph_upper_e = {{34, 0, 905, 1088}, 13, &oPts3[0]};
 
 /* glyph ( */
-
-static const rf_bbox_t bbox_5 = {92, -320, 456, 1088};
-static const size_t cntOutlinePts5_1 = 24;
-
-static vec2_t outlinePts5_1[24] = {
+static vec2_t oPts4[24] = {
     {456.f, -320.f},
     {359.f, -320.f},
     {282.f, -213.f},
@@ -148,16 +134,10 @@ static vec2_t outlinePts5_1[24] = {
     {456.f, -320.f}
 };
 
-static rf_outlines_t glyph5_outlines[] = { 
-    { &outlinePts5_1[0], cntOutlinePts5_1},
-        /* Senitinel */
-    { NULL, 0 },
-};
+static rf_glyph_t __rf_test_glyph_left_parenthesis_ = {{92, -320, 456, 1088}, 24, &oPts4[0]};
 
 /* Glyph @ */
-static const rf_bbox_t bbox_6 = {86, -320, 1507, 1088};
-static const size_t cntOutlinePts6_1 = 103;
-static vec2_t outlinePts6_1[103] = {
+static vec2_t oPts5[128] = {
     {1507.f,     0.f},
     {1443.f,   -90.f},
     {1358.f,  -168.f},
@@ -260,10 +240,7 @@ static vec2_t outlinePts6_1[103] = {
     {1244.f,  -103.f},
     {1315.f,   -56.f},
     {1372.f,     0.f},
-    {1507.f,     0.f}
-};
-static const size_t cntOutlinePts6_2 = 25;
-static vec2_t outlinePts6_2[25] = {
+    {1507.f,     0.f},
     { 671.f,   128.f},
     { 737.f,   140.f},
     { 800.f,   174.f},
@@ -290,27 +267,15 @@ static vec2_t outlinePts6_2[25] = {
     { 630.f,   134.f},
     { 671.f,   128.f}
 };
+static rf_glyph_t __rf_test_glyph_commercial_add = {{86, -320, 1507, 1088}, 128, &oPts5[0]};
 
-static rf_outlines_t glyph6_outlines[] = { 
-    { &outlinePts6_1[0], cntOutlinePts6_1},  
-    { &outlinePts6_2[0], cntOutlinePts6_2},
-    /* Senitinel */
-    { NULL, 0 },
-};
-
-static rf_glyph_t __rf_test_glyph = { bbox_1, &glyph1_outlines[0]};
-static rf_glyph_t __rf_test_glyph_neg = { bbox_2, &glyph2_outlines[0]};
-static rf_glyph_t __rf_test_glyph_exclamation_mark = { bbox_3, &glyph3_outlines[0]};
-static rf_glyph_t __rf_test_glyph_upper_e = { bbox_4, &glyph4_outlines[0]};
-static rf_glyph_t __rf_test_glyph_left_parenthesis_ = { bbox_5, &glyph5_outlines[0]};
-static rf_glyph_t __rf_test_glyph_commercial_add = { bbox_6, &glyph6_outlines[0]};
 
 rf_glyph_t* __rf_test_glyph_get( unsigned long charcode ) 
 {
     switch (charcode)
     {
-        case 0: return &__rf_test_glyph; break;
-        case 1: return &__rf_test_glyph_neg; break;
+        //case 0: return &__rf_test_glyph; break;
+        //case 1: return &__rf_test_glyph_neg; break;
         case 2: return &__rf_test_glyph_exclamation_mark; break;
         case 3: return &__rf_test_glyph_upper_e; break;
         case 4: return &__rf_test_glyph_left_parenthesis_; break;
@@ -352,6 +317,7 @@ static void __rf_test_printBuffer(__rf_test_buffer_ctx_t *_buffCtx)
         if ( (i > 0) && ((i % buffCtx->width) == 0) ) printf("\n");
         printf("%ld ", buffCtx->buffer[i]);
     }
+    printf("\n\n");
 }
 #endif
 
@@ -393,6 +359,27 @@ static void test_r_font_raster_dummy()
     __rf_test_buffer_ctx_t buffCtx = {buffer, width, height, (vec2_t){5.f, 10.f}};   
 
     __rf_test_clearBuffer(&buffCtx);
+    rfont_raster(&rf_ctx, 2, charwidth, __rf_test_render_func, &buffCtx);
+
+    #ifdef debug
+    __rf_test_printBuffer(&buffCtx);
+    #endif
+
+    __rf_test_clearBuffer(&buffCtx);
+    rfont_raster(&rf_ctx, 3, charwidth, __rf_test_render_func, &buffCtx);
+
+    #ifdef debug
+    __rf_test_printBuffer(&buffCtx);
+    #endif
+
+    __rf_test_clearBuffer(&buffCtx);
+    rfont_raster(&rf_ctx, 4, charwidth, __rf_test_render_func, &buffCtx);
+
+    #ifdef debug
+    __rf_test_printBuffer(&buffCtx);
+    #endif
+
+    __rf_test_clearBuffer(&buffCtx);
     rfont_raster(&rf_ctx, 5, charwidth, __rf_test_render_func, &buffCtx);
 
     #ifdef debug
@@ -402,7 +389,7 @@ static void test_r_font_raster_dummy()
     DEBUG_LOG("<<<\n");
 }
 
-static void test_r_font_raster_default_provider() 
+/*static void test_r_font_raster_default_provider() 
 {
     DEBUG_LOG(">>>\n");
 
@@ -491,7 +478,7 @@ static void test_r_text_raster_default_provider()
 
     DEBUG_LOG("<<<\n");
 }
-
+*/
 int main(int argc, char* argv[])
 {
     /* unused */
@@ -502,10 +489,10 @@ int main(int argc, char* argv[])
 
     test_r_font_raster_dummy();
 
-    test_r_font_raster_default_provider();
+    //test_r_font_raster_default_provider();
 
-    test_r_text_raster_default_provider();
-
+    //test_r_text_raster_default_provider();
+ 
     DEBUG_LOG("<< renderer font tests:\n");
 	return 0;
 }

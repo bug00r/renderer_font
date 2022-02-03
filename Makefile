@@ -61,7 +61,8 @@ OBJS=$(BUILDPATH)$(NAME).o
 LIBS=$(NAME) dl_list utilsmath vec mat
 
 TESTLIB=$(patsubst %,-l%,$(LIBS))
-_TEST_SRC_FILES=test_r_font font_provider_default
+_TEST_SRC_FILES=test_r_font
+#font_provider_default
 TESTSRC=$(patsubst %,src/%,$(patsubst %,%.c,$(_TEST_SRC_FILES)))
 TESTBIN=$(BUILDPATH)test_$(NAME).exe
 LIBNAME=lib$(NAME).a
@@ -75,7 +76,8 @@ $(OBJS):
 $(LIB): $(OBJS)
 	$(AR) $(ARFLAGS) $@ $^
 
-$(TESTBIN): $(LIB) $(TESTSRC) src/font_provider_default.h
+# src/font_provider_default.h
+$(TESTBIN): $(LIB) $(TESTSRC)
 	$(CC) $(CFLAGS) $(TESTSRC) -o $@ $(LIBSDIR) $(TESTLIB) $(INCLUDE)
 
 .PHONY: clean mkbuilddir test
