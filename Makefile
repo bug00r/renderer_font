@@ -1,66 +1,46 @@
-#MAKE?=mingw32-make
-AR?=ar
 ARFLAGS?=rcs
 PATHSEP?=/
-CC=gcc
 BUILDROOT?=build
-
-ifeq ($(CLANG),1)
-	export CC=clang
-endif
 
 BUILDDIR?=$(BUILDROOT)$(PATHSEP)$(CC)
 BUILDPATH?=$(BUILDDIR)$(PATHSEP)
 
-INSTALL_ROOT?=$(BUILDPATH)
-
-#DEBUGSYMBOLS=-ggdb
-DEBUGSYMBOLS=-g
-
-ifeq ($(DEBUG),1)
-	export debug=$(DEBUGSYMBOLS) -Ddebug=1
-	export isdebug=1
+ifndef PREFIX
+	INSTALL_ROOT=$(BUILDPATH)
+else
+	INSTALL_ROOT=$(PREFIX)$(PATHSEP)
+	ifeq ($(INSTALL_ROOT),/)
+	INSTALL_ROOT=$(BUILDPATH)
+	endif
 endif
 
-ifeq ($(ANALYSIS),1)
-	export analysis=-Danalysis=1
-	export isanalysis=1
+ifdef DEBUG
+	CFLAGS+=-ggdb
+	ifeq ($(DEBUG),)
+	CFLAGS+=-Ddebug=1
+	else 
+	CFLAGS+=-Ddebug=$(DEBUG)
+	endif
 endif
-
-ifeq ($(DEBUG),2)
-	export debug=$(DEBUGSYMBOLS) -Ddebug=2
-	export isdebug=1
-endif
-
-ifeq ($(DEBUG),3)
-	export debug=$(DEBUGSYMBOLS) -Ddebug=3
-	export isdebug=1
-endif
-
-ifeq ($(OUTPUT),1)
-	export outimg= -Doutput=1
-endif
-
-
-BIT_SUFFIX=
 
 ifeq ($(M32),1)
 	CFLAGS+=-m32
 	BIT_SUFFIX+=32
 endif
 
-CFLAGS+= -std=c11 -Wpedantic -pedantic-errors -Wall -Wextra $(debug)
+CFLAGS+=-std=c11 -Wpedantic -pedantic-errors -Wall -Wextra
 #-ggdb
 #-pg for profiling 
 
-LIBSDIR?=-L./$(BUILDDIR) -L/c/dev/lib$(BIT_SUFFIX) 
-INCLUDE?=-I/c/dev/include -I/usr/include -I./src
+LDFLAGS=-L./$(BUILDDIR) -L/c/dev/lib$(BIT_SUFFIX) 
+CFLAGS+=-I/c/dev/include -I/usr/include -I./src
 
 NAME=r_font
 OBJS=$(BUILDPATH)$(NAME).o
 LIBS=$(NAME) dl_list utilsmath vec mat
 
-TESTLIB=$(patsubst %,-l%,$(LIBS))
+LDFLAGS+=$(patsubst %,-l%,$(LIBS))
+
 _TEST_SRC_FILES=test_r_font font_provider_default
 TESTSRC=$(patsubst %,src/%,$(patsubst %,%.c,$(_TEST_SRC_FILES)))
 TESTBIN=$(BUILDPATH)test_$(NAME).exe
@@ -70,17 +50,17 @@ LIB=$(BUILDPATH)$(LIBNAME)
 all: mkbuilddir $(LIB)
 
 $(OBJS):
-	$(CC) $(CFLAGS) -c src/$(@F:.o=.c) -o $@ $(INCLUDE)
+	$(CC) $(CFLAGS) -c src/$(@F:.o=.c) -o $@
 
 $(LIB): $(OBJS)
 	$(AR) $(ARFLAGS) $@ $^
  
 $(TESTBIN): $(LIB) $(TESTSRC) src/font_provider_default.h
-	$(CC) $(CFLAGS) $(TESTSRC) -o $@ $(LIBSDIR) $(TESTLIB) $(INCLUDE)
+	$(CC) $(CFLAGS) $(TESTSRC) -o $@ $(LDFLAGS)
 
 .PHONY: clean mkbuilddir test
 
-test: $(TESTBIN)
+test: mkbuilddir $(TESTBIN)
 	./$(TESTBIN)
 
 install_folder:
