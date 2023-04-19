@@ -1,7 +1,7 @@
 _CFLAGS:=$(CFLAGS)
-CFLAGS+=$(_CFLAGS)
+CFLAGS:=$(_CFLAGS)
 _LDFLAGS:=$(LDFLAGS)
-LDFLAGS+=$(_LDFLAGS)
+LDFLAGS:=$(_LDFLAGS)
 
 ARFLAGS?=rcs
 PATHSEP?=/
@@ -37,7 +37,7 @@ CFLAGS+=-std=c11 -Wpedantic -pedantic-errors -Wall -Wextra
 #-ggdb
 #-pg for profiling 
 
-LDFLAGS=-L./$(BUILDDIR) -L/c/dev/lib$(BIT_SUFFIX) 
+LDFLAGS+=-L./$(BUILDDIR) -L/c/dev/lib$(BIT_SUFFIX) 
 CFLAGS+=-I/c/dev/include -I/usr/include -I./src
 
 NAME=r_font
