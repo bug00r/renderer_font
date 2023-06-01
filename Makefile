@@ -33,18 +33,18 @@ ifeq ($(M32),1)
 	BIT_SUFFIX+=32
 endif
 
-CFLAGS+=-std=c11 -Wpedantic -pedantic-errors -Wall -Wextra
+override CFLAGS+=-std=c11 -Wpedantic -pedantic-errors -Wall -Wextra
 #-ggdb
 #-pg for profiling 
 
-LDFLAGS+=-L./$(BUILDDIR) -L/c/dev/lib$(BIT_SUFFIX) 
-CFLAGS+=-I/c/dev/include -I/usr/include -I./src
+override LDFLAGS+=-L./$(BUILDDIR) -L/c/dev/lib$(BIT_SUFFIX) 
+override CFLAGS+=-I/c/dev/include -I/usr/include -I./src
 
 NAME=r_font
 OBJS=$(BUILDPATH)$(NAME).o
 LIBS=$(NAME) dl_list utilsmath vec mat
 
-LDFLAGS+=$(patsubst %,-l%,$(LIBS))
+override LDFLAGS+=$(patsubst %,-l%,$(LIBS))
 
 _TEST_SRC_FILES=test_r_font font_provider_default
 TESTSRC=$(patsubst %,src/%,$(patsubst %,%.c,$(_TEST_SRC_FILES)))
