@@ -3,19 +3,19 @@
 //#ifdef debug
 #include <stdio.h>
 //Debug output
-void __rfont_bbox_print(const char *label, rf_bbox_t *bbox) {
+void __rfont_bbox_print(const char *label, RFBBox *bbox) {
     printf("%s: xmin: %ld ymin: %ld xmax: %ld ymax: %ld\n", label, bbox->xMin, bbox->yMin 
                                                                  , bbox->xMax, bbox->yMax);
 }  
 
 //#endif
 
-void rfont_init(rf_ctx_t* ctx, rf_provider_t *provider)
+void rfont_init(RFCtx* ctx, RFProvider *provider)
 {
     ctx->provider = provider;
     ctx->glyps = provider->get();
 
-    rf_provider_init_t *init = provider->init;
+    RFProviderInit *init = provider->init;
     if ( init != NULL )
     {
         INIT_PROVIDER_FN init_fn =  init->get_init_fn();
@@ -26,13 +26,13 @@ void rfont_init(rf_ctx_t* ctx, rf_provider_t *provider)
     }
 }
 
-void rfont_cleanup(rf_ctx_t *ctx) 
+void rfont_cleanup(RFCtx *ctx) 
 {
     ctx->provider->free(&ctx->glyps);
     ctx->provider = NULL;
 }
 
-static bool __r_font_vec2_inside_bbox(vec2_t *vec, rf_bbox_t *bbox)
+static bool __r_font_vec2_inside_bbox(Vec2 *vec, RFBBox *bbox)
 { 
     return (vec->x >= bbox->xMin) ||
            (vec->x <= bbox->xMax) ||
@@ -40,26 +40,26 @@ static bool __r_font_vec2_inside_bbox(vec2_t *vec, rf_bbox_t *bbox)
            (vec->y <= bbox->yMax);
 }
 
-static bool __r_font_must_check_for_intersection(vec2_t *p1, vec2_t *p2, rf_bbox_t* bbox)
+static bool __r_font_must_check_for_intersection(Vec2 *p1, Vec2 *p2, RFBBox* bbox)
 {   
     return __r_font_vec2_inside_bbox(p1, bbox) || __r_font_vec2_inside_bbox(p2, bbox);
 }
 
-static int __r_font_compute_intersectionsum(rf_glyph_t *_glyph, rf_bbox_t *toCheckArea,
-                                            vec2_t *curPoint, vec2_t *rasterRef)
+static int __r_font_compute_intersectionsum(RFGlyph *_glyph, RFBBox *toCheckArea,
+                                            Vec2 *curPoint, Vec2 *rasterRef)
 {
-    rf_glyph_t *glyph = _glyph;
+    RFGlyph *glyph = _glyph;
 
-    vec2_t *outlinePts = glyph->points;
+    Vec2 *outlinePts = glyph->points;
     size_t cntPoints = glyph->cntPoints;
-    vec2_t *outlineFirst = NULL;
+    Vec2 *outlineFirst = NULL;
 
     int intersectionSum = 0;
 
     for ( size_t curOutlinePt = 1; curOutlinePt < cntPoints; ++curOutlinePt)
     {
-        vec2_t *start = &outlinePts[curOutlinePt-1];
-        vec2_t *end = &outlinePts[curOutlinePt];
+        Vec2 *start = &outlinePts[curOutlinePt-1];
+        Vec2 *end = &outlinePts[curOutlinePt];
 
         if ( outlineFirst == NULL )
         {
@@ -91,9 +91,9 @@ static int __r_font_compute_intersectionsum(rf_glyph_t *_glyph, rf_bbox_t *toChe
                 #endif                               
 
                 /* computing side */
-                vec3_t first = { start->x, start->y, 0.f };
-                vec3_t middle = { curPoint->x, curPoint->y, 0.f };
-                vec3_t last = { end->x, end->y, 0.f };
+                Vec3 first = { start->x, start->y, 0.f };
+                Vec3 middle = { curPoint->x, curPoint->y, 0.f };
+                Vec3 last = { end->x, end->y, 0.f };
 
                 float place = place_of_vec3(&first, &last, &middle);
 
@@ -117,19 +117,19 @@ static int __r_font_compute_intersectionsum(rf_glyph_t *_glyph, rf_bbox_t *toChe
 }
 
 typedef struct {
-    vec2_t curPos;
-    vec2_t lastMax;
+    Vec2 curPos;
+    Vec2 lastMax;
 } __rf_options_t;
 
-static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx, unsigned long charcode, float charwidth, RASTER_FONT_FUNC rFunc, void *data)
+static void __r_font_raster_raw(__rf_options_t * _options, RFCtx const * ctx, unsigned long charcode, float charwidth, RASTER_FONT_FUNC rFunc, void *data)
 {
     if ( rFunc == NULL || ctx == NULL || charwidth <= 0.f ) return;
 
-    rf_glyph_container_t *glyphs = ctx->glyps;
-    rf_glyph_t *glyph = glyphs->get(charcode);
+    RFGlyphContainer *glyphs = ctx->glyps;
+    RFGlyph *glyph = glyphs->get(charcode);
 
-    rf_bbox_t* glyphBbox = &glyph->bbox;
-    rf_bbox_t* globalBbox = &glyphs->globalBbox;
+    RFBBox* glyphBbox = &glyph->bbox;
+    RFBBox* globalBbox = &glyphs->globalBbox;
 
     __rf_options_t * options = _options; 
 
@@ -144,10 +144,10 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
         return;
     }
 
-    rf_glyph_meta_t meta;
+    RFGlyphMeta meta;
     rfont_get_meta(ctx, &meta, charcode, charwidth);
 
-    rf_bbox_t *alignedCharBox = &meta.alignedCharBox;
+    RFBBox *alignedCharBox = &meta.alignedCharBox;
     float xOffsetChar = meta.xOffsetChar;
     float yOffsetChar = meta.yOffsetChar;
 
@@ -155,7 +155,7 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
         __rfont_bbox_print("\n(ALIGNED)char Bbox", alignedCharBox);
     #endif
 
-    vec2_t rasterRef = { 
+    Vec2 rasterRef = { 
         globalBbox->xMax + 1.f, 
         globalBbox->yMax + ((globalBbox->yMax - globalBbox->yMin) * 0.5f)
     };
@@ -164,7 +164,7 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
         printf("RasterRef: x: %.2f y: %.2f\n", rasterRef.x, rasterRef.y);
     #endif
 
-    rf_bbox_t toCheckArea = {
+    RFBBox toCheckArea = {
         0L,/* will be set in loop */
         0L,/* will be set in loop */
         rasterRef.x, /* based on algo this is max */
@@ -179,7 +179,7 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
         /* screenresult y */
         float curGlyphY = interpolate_lin(deltaScrY + 1, alignedCharBox->yMin, glyphBbox->yMin, alignedCharBox->yMax, glyphBbox->yMax);
 
-        vec2_t curPoint;
+        Vec2 curPoint;
         curPoint.y = (float)curGlyphY;
 
         toCheckArea.yMin = curGlyphY;
@@ -218,10 +218,10 @@ static void __r_font_raster_raw(__rf_options_t * _options, rf_ctx_t const * ctx,
     }
 }
 
-void rfont_raster(rf_ctx_t const * ctx, unsigned long charcode, float charwidth, RASTER_FONT_FUNC rFunc, void *data)
+void rfont_raster(RFCtx const * ctx, unsigned long charcode, float charwidth, RASTER_FONT_FUNC rFunc, void *data)
 {
     __rf_options_t options;
-    options.curPos = (vec2_t){0.f, 0.f};
+    options.curPos = (Vec2){0.f, 0.f};
     __r_font_raster_raw(&options, ctx, charcode, charwidth, rFunc, data);
 }
 
@@ -267,10 +267,10 @@ static unsigned long __r_font_compute_charcode(char *curChar, unsigned int *used
     return result;
 }
 
-void rfont_raster_text(rf_ctx_t const * ctx, unsigned char const * const text, float charwidth, RASTER_FONT_FUNC rFunc, void *data)
+void rfont_raster_text(RFCtx const * ctx, unsigned char const * const text, float charwidth, RASTER_FONT_FUNC rFunc, void *data)
 {
     __rf_options_t options;
-    options.curPos = (vec2_t){0.f, 0.f};
+    options.curPos = (Vec2){0.f, 0.f};
     char *curChar = (char *)text;
 
     float hGap = 3.f;
@@ -287,29 +287,29 @@ void rfont_raster_text(rf_ctx_t const * ctx, unsigned char const * const text, f
     }
 }
 
-void rfont_get_meta(rf_ctx_t const * ctx, rf_glyph_meta_t* _meta, unsigned long charcode, float charwidth)
+void rfont_get_meta(RFCtx const * ctx, RFGlyphMeta* _meta, unsigned long charcode, float charwidth)
 {
-    rf_glyph_container_t *glyphs = ctx->glyps;
-    rf_glyph_t *glyph = glyphs->get(charcode);
+    RFGlyphContainer *glyphs = ctx->glyps;
+    RFGlyph *glyph = glyphs->get(charcode);
 
-    rf_bbox_t* glyphBbox = &glyph->bbox;
+    RFBBox* glyphBbox = &glyph->bbox;
 
-    rf_bbox_t* globalBbox = &glyphs->globalBbox;
+    RFBBox* globalBbox = &glyphs->globalBbox;
 
-    rf_glyph_meta_t* meta = _meta;
+    RFGlyphMeta* meta = _meta;
 
-    meta->lenGlyph = (vec2_t){ ((float)glyphBbox->xMax - (float)glyphBbox->xMin), ((float)glyphBbox->yMax - (float)glyphBbox->yMin) };
-    meta->lenGlobal = (vec2_t){ ((float)globalBbox->xMax - (float)globalBbox->xMin), ((float)globalBbox->yMax - (float)globalBbox->yMin) };
+    meta->lenGlyph = (Vec2){ ((float)glyphBbox->xMax - (float)glyphBbox->xMin), ((float)glyphBbox->yMax - (float)glyphBbox->yMin) };
+    meta->lenGlobal = (Vec2){ ((float)globalBbox->xMax - (float)globalBbox->xMin), ((float)globalBbox->yMax - (float)globalBbox->yMin) };
 
     meta->pixelRatio = ( charwidth / meta->lenGlobal.x);
 
-    meta->glyphPixel = (vec2_t){ ceilf(meta->pixelRatio * meta->lenGlyph.x), ceilf(meta->pixelRatio * meta->lenGlyph.y) };
+    meta->glyphPixel = (Vec2){ ceilf(meta->pixelRatio * meta->lenGlyph.x), ceilf(meta->pixelRatio * meta->lenGlyph.y) };
  
 
     meta->xOffsetChar = ( glyphBbox->xMin != 0 ? (float)glyphBbox->xMin * meta->pixelRatio : 0 );
     meta->yOffsetChar = ( glyphBbox->yMin != 0 ? (float)glyphBbox->yMin * meta->pixelRatio : 0 );
 
-    meta->alignedCharBox = (rf_bbox_t){
+    meta->alignedCharBox = (RFBBox){
         /* xMin */-1,
         /* yMin */-1,
         /* xMax */meta->glyphPixel.x,
@@ -322,10 +322,10 @@ void rfont_get_meta(rf_ctx_t const * ctx, rf_glyph_meta_t* _meta, unsigned long 
     }
 }
 
-void rfont_get_meta_str(rf_ctx_t const * ctx, rf_glyph_meta_t* _meta, unsigned char const * const text, float charwidth)
+void rfont_get_meta_str(RFCtx const * ctx, RFGlyphMeta* _meta, unsigned char const * const text, float charwidth)
 {
-    rf_glyph_meta_t* globalMeta = _meta;
-    rf_glyph_meta_t localMeta;
+    RFGlyphMeta* globalMeta = _meta;
+    RFGlyphMeta localMeta;
 
     char *curChar = (char *)text;
 
@@ -333,7 +333,7 @@ void rfont_get_meta_str(rf_ctx_t const * ctx, rf_glyph_meta_t* _meta, unsigned c
 
     globalMeta->yOffsetChar = 0.f;
     //not in use globalMeta->xOffsetChar
-    globalMeta->alignedCharBox = (rf_bbox_t){
+    globalMeta->alignedCharBox = (RFBBox){
         /* xMin */-1,
         /* yMin */-1,
         /* xMax */0,
