@@ -38,7 +38,7 @@ override CFLAGS+=-std=c11 -Wpedantic -pedantic-errors -Wall -Wextra
 #-pg for profiling 
 
 override LDFLAGS+=-L./$(BUILDDIR) -L/c/dev/lib$(BIT_SUFFIX) 
-override CFLAGS+=-I/c/dev/include -I/usr/include -I./src
+override CFLAGS+=-I./src -I/c/dev/include -I/usr/include
 
 NAME=r_font
 OBJS=$(BUILDPATH)$(NAME).o
