@@ -46,6 +46,16 @@ LIBS=$(NAME) dl_list utilsmath vec mat
 
 override LDFLAGS+=$(patsubst %,-l%,$(LIBS))
 
+UNAME_S := $(shell uname -s)
+
+ifeq ($(OS), Windows_NT)
+	#nothing yet
+endif
+
+ifeq ($(UNAME_S), Linux) 
+	override LDFLAGS+=-lm
+endif
+
 _TEST_SRC_FILES=test_r_font font_provider_default
 TESTSRC=$(patsubst %,src/%,$(patsubst %,%.c,$(_TEST_SRC_FILES)))
 TESTBIN=$(BUILDPATH)test_$(NAME).exe
